@@ -40,6 +40,7 @@ export const AppProvider = ({ children }) => {
   const [auditLogs, setAuditLogs] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [companies, setCompanies] = useState([]);
 
   // Local-only / Fallback States
   const [trainingModules, setTrainingModules] = useState(() => {
@@ -97,7 +98,16 @@ export const AppProvider = ({ children }) => {
         setCampaigns(campRes.data);
         
         const tempRes = await api.get('/email-templates');
-        setEmailTemplates(tempRes.data);
+        const mappedTemplates = tempRes.data.map(t => ({
+          id: t.id,
+          name: t.title || "",
+          subject: t.subject || "",
+          body: t.body_html || "",
+          category: t.category || "Credential Theft",
+          difficulty: t.difficulty || "Medium",
+          sender_name: t.sender_name || "System Notification"
+        }));
+        setEmailTemplates(mappedTemplates);
         
         const repRes = await api.get('/reported-emails');
         const mappedReports = repRes.data.map(r => ({
@@ -124,6 +134,13 @@ export const AppProvider = ({ children }) => {
         
         const deptRes = await api.get('/departments');
         setDepartments(deptRes.data);
+        
+        try {
+          const compRes = await api.get('/companies');
+          setCompanies(compRes.data);
+        } catch (e) {
+          console.warn("Could not fetch companies:", e);
+        }
         
         if (userRole === 'Security Administrator') {
           try {
@@ -182,6 +199,7 @@ export const AppProvider = ({ children }) => {
         first_name: employee.first_name || employee.name?.split(' ')[0] || 'Unknown',
         last_name: employee.last_name || employee.name?.split(' ').slice(1).join(' ') || 'Employee',
         email: employee.email,
+        company_id: employee.company_id || null,
         department_id: employee.department_id || employee.department,
         job_title: employee.job_title || 'Specialist',
         status: employee.status || 'Active',
@@ -200,6 +218,7 @@ export const AppProvider = ({ children }) => {
       const response = await api.put(`/employees/${id}`, {
         first_name: updatedData.first_name || updatedData.name?.split(' ')[0] || 'Unknown',
         last_name: updatedData.last_name || updatedData.name?.split(' ').slice(1).join(' ') || 'Employee',
+        company_id: updatedData.company_id || null,
         department_id: updatedData.department_id || updatedData.department,
         job_title: updatedData.job_title || 'Specialist',
         status: updatedData.status || 'Active',
@@ -268,6 +287,38 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const addCompany = async (company) => {
+    try {
+      const response = await api.post('/companies', company);
+      await fetchData();
+      return response.data;
+    } catch (error) {
+      console.error("Failed to add company:", error);
+      throw error;
+    }
+  };
+
+  const editCompany = async (id, company) => {
+    try {
+      const response = await api.put(`/companies/${id}`, company);
+      await fetchData();
+      return response.data;
+    } catch (error) {
+      console.error("Failed to edit company:", error);
+      throw error;
+    }
+  };
+
+  const deleteCompany = async (id) => {
+    try {
+      await api.delete(`/companies/${id}`);
+      await fetchData();
+    } catch (error) {
+      console.error("Failed to delete company:", error);
+      throw error;
+    }
+  };
+
   // Campaigns Actions
   const addCampaign = async (campaign) => {
     try {
@@ -314,10 +365,10 @@ export const AppProvider = ({ children }) => {
   const addTemplate = async (template) => {
     try {
       const response = await api.post('/email-templates', {
-        name: template.name,
+        title: template.name,
         subject: template.subject,
         sender_name: template.sender_name || 'System Notification',
-        body: template.body,
+        body_html: template.body,
         category: template.category,
         difficulty: template.difficulty
       });
@@ -332,10 +383,10 @@ export const AppProvider = ({ children }) => {
   const editTemplate = async (id, template) => {
     try {
       const response = await api.put(`/email-templates/${id}`, {
-        name: template.name,
+        title: template.name,
         subject: template.subject,
         sender_name: template.sender_name || 'System Notification',
-        body: template.body,
+        body_html: template.body,
         category: template.category,
         difficulty: template.difficulty
       });
@@ -532,6 +583,7 @@ export const AppProvider = ({ children }) => {
       rolePermissions,
       campaignEvents,
       departments,
+      companies,
       login,
       employeeLogin,
       register,
@@ -543,6 +595,9 @@ export const AppProvider = ({ children }) => {
       addDepartment,
       editDepartment,
       deleteDepartment,
+      addCompany,
+      editCompany,
+      deleteCompany,
       addCampaign,
       deleteCampaign,
       updateCampaignStatus,

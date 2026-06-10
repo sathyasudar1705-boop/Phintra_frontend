@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToast } from '../../hooks/useToast';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Download, TrendingUp, Users, Award, BookOpen, AlertTriangle, ArrowUpRight } from 'lucide-react';
 import Button from '../../components/common/Button';
+import api from '../../services/api';
 
 const DEPT_PERFORMANCE = [
   { name: 'Engineering', completion: 95, score: 91 },
@@ -34,6 +35,41 @@ const HIGH_RISK_DEPT = [
 
 const AwarenessInsights = () => {
   const toast = useToast();
+  const [insights, setInsights] = useState({
+    overallCompletion: '82.2%',
+    avgQuizRating: '85.4/100',
+    phishClickRate: '14.8%',
+    empoweredEmployees: '946 / 1.1k',
+    deptPerformance: DEPT_PERFORMANCE,
+    lureDistribution: LURE_DISTRIBUTION,
+    trends: TRENDS,
+    highRiskDept: HIGH_RISK_DEPT
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    const fetchInsights = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get('/analytics/insights');
+        if (active && res.data) {
+          setInsights(res.data);
+        }
+      } catch (err) {
+        console.error('Error fetching insights:', err);
+        toast.error('Failed to load real-time analytics. Showing cached data.');
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+    fetchInsights();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleExport = () => {
     toast.info('Generating Educational PDF Report...');
@@ -68,7 +104,7 @@ const AwarenessInsights = () => {
             </div>
           </div>
           <div style={{ marginTop: '12px' }}>
-            <h2 style={{ fontSize: '28px', fontWeight: '800' }}>82.2%</h2>
+            <h2 style={{ fontSize: '28px', fontWeight: '800' }}>{insights.overallCompletion}</h2>
             <span style={{ fontSize: '12px', color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500', marginTop: '4px' }}>
               <ArrowUpRight size={14} /> +4.1% this month
             </span>
@@ -83,7 +119,7 @@ const AwarenessInsights = () => {
             </div>
           </div>
           <div style={{ marginTop: '12px' }}>
-            <h2 style={{ fontSize: '28px', fontWeight: '800' }}>85.4/100</h2>
+            <h2 style={{ fontSize: '28px', fontWeight: '800' }}>{insights.avgQuizRating}</h2>
             <span style={{ fontSize: '12px', color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500', marginTop: '4px' }}>
               <ArrowUpRight size={14} /> +2.5 pts compared to Q1
             </span>
@@ -98,7 +134,7 @@ const AwarenessInsights = () => {
             </div>
           </div>
           <div style={{ marginTop: '12px' }}>
-            <h2 style={{ fontSize: '28px', fontWeight: '800' }}>14.8%</h2>
+            <h2 style={{ fontSize: '28px', fontWeight: '800' }}>{insights.phishClickRate}</h2>
             <span style={{ fontSize: '12px', color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500', marginTop: '4px' }}>
               &darr; 3.2% decline in clicks (Good)
             </span>
@@ -113,7 +149,7 @@ const AwarenessInsights = () => {
             </div>
           </div>
           <div style={{ marginTop: '12px' }}>
-            <h2 style={{ fontSize: '28px', fontWeight: '800' }}>946 / 1.1k</h2>
+            <h2 style={{ fontSize: '28px', fontWeight: '800' }}>{insights.empoweredEmployees}</h2>
             <span style={{ fontSize: '12px', color: 'var(--color-teal)', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '500', marginTop: '4px' }}>
               Completed basic training
             </span>
@@ -134,7 +170,7 @@ const AwarenessInsights = () => {
           <h3 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '20px' }}>Completion Rate vs Quiz Score by Dept</h3>
           <div style={{ height: '260px' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={DEPT_PERFORMANCE} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+              <BarChart data={insights.deptPerformance} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--bg-sidebar)" />
                 <XAxis dataKey="name" style={{ fontSize: '11px' }} />
                 <YAxis style={{ fontSize: '11px' }} />
@@ -152,7 +188,7 @@ const AwarenessInsights = () => {
           <h3 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '20px' }}>Clicks vs Reported Email Trends (Monthly)</h3>
           <div style={{ height: '260px' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={TRENDS} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+              <LineChart data={insights.trends} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--bg-sidebar)" />
                 <XAxis dataKey="month" style={{ fontSize: '11px' }} />
                 <YAxis style={{ fontSize: '11px' }} />
@@ -180,13 +216,13 @@ const AwarenessInsights = () => {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={LURE_DISTRIBUTION}
+                  data={insights.lureDistribution}
                   innerRadius={60}
                   outerRadius={90}
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {LURE_DISTRIBUTION.map((entry, index) => (
+                  {insights.lureDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -211,7 +247,7 @@ const AwarenessInsights = () => {
                 </tr>
               </thead>
               <tbody>
-                {HIGH_RISK_DEPT.map((dept, idx) => (
+                {insights.highRiskDept.map((dept, idx) => (
                   <tr key={idx}>
                     <td style={{ fontWeight: '600' }}>{dept.name}</td>
                     <td>

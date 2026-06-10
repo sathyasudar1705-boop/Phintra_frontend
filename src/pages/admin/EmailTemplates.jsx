@@ -23,6 +23,7 @@ const EmailTemplates = () => {
   const [newBody, setNewBody] = useState('');
   const [createError, setCreateError] = useState('');
   const [createSuccess, setCreateSuccess] = useState('');
+  const [saving, setSaving] = useState(false);
 
   // Extract unique categories
   const categories = ['All', 'Credential Theft', 'Urgent Action', 'Suspicious Link'];
@@ -77,6 +78,7 @@ const EmailTemplates = () => {
     }
 
     try {
+      setSaving(true);
       if (editingTemplate) {
         await editTemplate(editingTemplate.id, {
           name: newName,
@@ -101,7 +103,9 @@ const EmailTemplates = () => {
         handleCloseCreateModal();
       }, 1000);
     } catch (err) {
-      setCreateError(err.response?.data?.detail || 'Failed to save template.');
+      setCreateError(err.response?.data?.detail || err.message || 'Failed to save template.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -407,8 +411,10 @@ const EmailTemplates = () => {
               </div>
 
               <div className="modal-footer">
-                <Button variant="secondary" onClick={handleCloseCreateModal}>Cancel</Button>
-                <Button variant="primary" type="submit">{editingTemplate ? 'Save Changes' : 'Create Template'}</Button>
+                <Button variant="secondary" onClick={handleCloseCreateModal} disabled={saving}>Cancel</Button>
+                <Button variant="primary" type="submit" disabled={saving}>
+                  {saving ? 'Saving...' : (editingTemplate ? 'Save Changes' : 'Create Template')}
+                </Button>
               </div>
             </form>
           </div>

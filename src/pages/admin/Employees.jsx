@@ -10,7 +10,8 @@ const AdminEmployees = () => {
     addEmployee, 
     editEmployee, 
     deleteEmployee, 
-    departments: dbDepartments 
+    departments: dbDepartments,
+    companies = []
   } = useAppContext();
   const confirm = useConfirm();
 
@@ -26,6 +27,7 @@ const AdminEmployees = () => {
   // Form Fields (Add)
   const [addName, setAddName] = useState('');
   const [addEmail, setAddEmail] = useState('');
+  const [addCompanyId, setAddCompanyId] = useState('');
   const [addDeptId, setAddDeptId] = useState('');
   const [addPassword, setAddPassword] = useState('');
   const [credentialsSummary, setCredentialsSummary] = useState(null);
@@ -33,6 +35,7 @@ const AdminEmployees = () => {
   // Form Fields (Edit)
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
+  const [editCompanyId, setEditCompanyId] = useState('');
   const [editDeptId, setEditDeptId] = useState('');
   const [editRisk, setEditRisk] = useState('Low');
   const [editStatus, setEditStatus] = useState('Not Started');
@@ -43,12 +46,23 @@ const AdminEmployees = () => {
   // Extract unique departments from DB
   const departments = ['All', ...(dbDepartments || []).map(d => d.name)];
 
-  // Initialize default department selection for Add Form
+  // Initialize default company selection and department selection for Add Form
   useEffect(() => {
-    if (dbDepartments && dbDepartments.length > 0 && !addDeptId) {
-      setAddDeptId(dbDepartments[0].id);
+    if (companies && companies.length > 0 && !addCompanyId) {
+      setAddCompanyId(companies[0].id);
     }
-  }, [dbDepartments, addDeptId]);
+  }, [companies, addCompanyId]);
+
+  useEffect(() => {
+    const filteredDepts = (dbDepartments || []).filter(d => !addCompanyId || d.company_id === addCompanyId);
+    if (filteredDepts.length > 0) {
+      if (!filteredDepts.some(d => d.id === addDeptId)) {
+        setAddDeptId(filteredDepts[0].id);
+      }
+    } else {
+      setAddDeptId('');
+    }
+  }, [addCompanyId, dbDepartments, addDeptId]);
 
   // Filtered employees
   const filteredEmployees = (employees || []).filter((emp) => {
@@ -99,6 +113,7 @@ const AdminEmployees = () => {
       await addEmployee({
         name: addName.trim(),
         email: addEmail.trim(),
+        company_id: addCompanyId,
         department_id: addDeptId,
         password: addPassword,
         job_title: 'Specialist',
@@ -120,10 +135,22 @@ const AdminEmployees = () => {
     setEditingEmp(emp);
     setEditName(emp.name || `${emp.first_name} ${emp.last_name}`);
     setEditEmail(emp.email);
+    setEditCompanyId(emp.company_id || '');
     setEditDeptId(emp.department_id);
     setEditRisk(emp.risk_level || 'Low');
     setEditStatus(emp.status || 'Low Risk');
   };
+
+  useEffect(() => {
+    const filteredDepts = (dbDepartments || []).filter(d => !editCompanyId || d.company_id === editCompanyId);
+    if (filteredDepts.length > 0) {
+      if (!filteredDepts.some(d => d.id === editDeptId)) {
+        setEditDeptId(filteredDepts[0].id);
+      }
+    } else {
+      setEditDeptId('');
+    }
+  }, [editCompanyId, dbDepartments, editDeptId]);
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
@@ -145,6 +172,7 @@ const AdminEmployees = () => {
         first_name: editName.split(' ')[0],
         last_name: editName.split(' ').slice(1).join(' ') || 'Employee',
         email: editEmail.trim(),
+        company_id: editCompanyId,
         department_id: editDeptId,
         risk_score: mappedRiskScore,
         status: editStatus,
@@ -391,6 +419,21 @@ const AdminEmployees = () => {
                     </div>
 
                     <div className="form-group">
+                      <label className="form-label">Company Assign</label>
+                      <select
+                        className="form-control"
+                        value={addCompanyId}
+                        onChange={(e) => setAddCompanyId(e.target.value)}
+                        required
+                      >
+                        <option value="">Select Company</option>
+                        {companies.map(c => (
+                          <option key={c.id} value={c.id}>{c.company_name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group">
                       <label className="form-label">Department Assign</label>
                       <select
                         className="form-control"
@@ -399,9 +442,11 @@ const AdminEmployees = () => {
                         required
                       >
                         <option value="">Select Department</option>
-                        {dbDepartments.map(d => (
-                          <option key={d.id} value={d.id}>{d.name}</option>
-                        ))}
+                        {(dbDepartments || [])
+                          .filter(d => !addCompanyId || d.company_id === addCompanyId)
+                          .map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
                       </select>
                     </div>
 
@@ -501,6 +546,21 @@ const AdminEmployees = () => {
                 </div>
 
                 <div className="form-group">
+                  <label className="form-label">Company Assign</label>
+                  <select
+                    className="form-control"
+                    value={editCompanyId}
+                    onChange={(e) => setEditCompanyId(e.target.value)}
+                    required
+                  >
+                    <option value="">Select Company</option>
+                    {companies.map(c => (
+                      <option key={c.id} value={c.id}>{c.company_name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
                   <label className="form-label">Department Assign</label>
                   <select
                     className="form-control"
@@ -509,9 +569,11 @@ const AdminEmployees = () => {
                     required
                   >
                     <option value="">Select Department</option>
-                    {dbDepartments.map(d => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
+                    {(dbDepartments || [])
+                      .filter(d => !editCompanyId || d.company_id === editCompanyId)
+                      .map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
                   </select>
                 </div>
 

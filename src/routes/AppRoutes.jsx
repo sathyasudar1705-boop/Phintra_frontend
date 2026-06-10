@@ -62,6 +62,7 @@ import LearningCenter from '../pages/user/LearningCenter';
 import Challenges from '../pages/user/Challenges';
 import SecurityJourney from '../pages/user/SecurityJourney';
 import KnowledgeHub from '../pages/user/KnowledgeHub';
+import ReportLandingPage from '../pages/user/ReportLandingPage';
 
 // Conditionally renders the AI chatbot only on admin routes
 const AdminOnlyChatbot = () => {
@@ -84,6 +85,9 @@ const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public Landing Page for Phishing click tracking */}
+        <Route path="/report/:track_id" element={<ReportLandingPage />} />
+
         {/* 1. Auth Routing */}
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<Navigate to="/admin/login" replace />} />
