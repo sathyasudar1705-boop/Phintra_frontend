@@ -12,14 +12,11 @@ const UserProgress = () => {
     { month: 'Feb', score: 72 },
     { month: 'Mar', score: 80 },
     { month: 'Apr', score: 84 },
-    { month: 'May', score: currentUser.securityScore }
+    { month: 'May', score: currentUser.securityScore || 80 }
   ];
 
-  // Simulated Quiz attempts history
-  const quizHistory = [
-    { id: 1, name: 'Phishing Fundamentals Quiz', score: 100, status: 'Passed', date: '2026-05-12' },
-    { id: 2, name: 'Social Engineering 101 Quiz', score: 80, status: 'Passed', date: '2026-05-18' },
-  ];
+  // Quiz attempts history from database
+  const quizHistory = currentUser.quiz_results || [];
 
   return (
     <div>
@@ -154,26 +151,32 @@ const UserProgress = () => {
           <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '16px' }}>Quiz History Logs</h3>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {quizHistory.map((q) => (
-              <div 
-                key={q.id}
-                style={{
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '8px',
-                  padding: '12px 16px',
-                  backgroundColor: 'var(--bg-card)'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>{q.name}</strong>
-                  <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--color-success)' }}>{q.score}%</span>
+            {quizHistory.length === 0 ? (
+              <p style={{ fontSize: '13px', color: 'var(--text-light)', textAlign: 'center', padding: '16px 0' }}>No quiz attempts recorded yet.</p>
+            ) : (
+              quizHistory.map((q) => (
+                <div 
+                  key={q.id}
+                  style={{
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    backgroundColor: 'var(--bg-card)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justify_content: 'space-between', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>{q.module_title} Quiz</strong>
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: q.passed ? 'var(--color-success)' : 'var(--color-danger)' }}>{q.score}%</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-light)' }}>
+                    <span>{q.attempted_at ? q.attempted_at.split('T')[0] : 'N/A'}</span>
+                    <span style={{ color: q.passed ? 'var(--color-success)' : 'var(--color-danger)', fontWeight: '600' }}>
+                      {q.passed ? 'Passed' : 'Failed'}
+                    </span>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-light)' }}>
-                  <span>{q.date}</span>
-                  <span style={{ color: 'var(--color-success)', fontWeight: '600' }}>Passed</span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 

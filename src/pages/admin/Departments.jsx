@@ -2,16 +2,26 @@ import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { useConfirm } from '../../hooks/useConfirm';
 import { initialDepartments } from '../../data/dummyData';
-import { Building2, Plus, Edit3, Trash2, ShieldAlert, Award, Users } from 'lucide-react';
+import { Building2, Plus, Edit3, Trash2, ShieldAlert, Award, Users, Eye } from 'lucide-react';
 import Button from '../../components/common/Button';
+import DepartmentDetailsModal from '../../components/admin/DepartmentDetailsModal';
 
 const Departments = () => {
   const confirm = useConfirm();
   const { departments, addDepartment, editDepartment, deleteDepartment } = useAppContext();
 
   // Modal States
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedDept, setSelectedDept] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingDept, setEditingDept] = useState(null);
+
+  const handleOpenDetails = (dept) => {
+    setSelectedDept(dept);
+    setShowDetailsModal(true);
+  };
+
+  // Existing code continues...
 
   // Form Fields (Add)
   const [addName, setAddName] = useState('');
@@ -167,6 +177,12 @@ const Departments = () => {
                     <Building2 size={20} />
                   </div>
                   <div style={{ display: 'flex', gap: '6px' }}>
+                      <Button 
+                        onClick={() => handleOpenDetails(dept)}
+                        variant="ghost"
+                        size="sm"
+                        icon={Eye}
+                      />
                     <Button 
                       onClick={() => handleOpenEdit(dept)}
                       variant="ghost"
@@ -416,6 +432,12 @@ const Departments = () => {
           </div>
         </div>
       )}
+
+      {/* 3. Details Modal */}
+      {showDetailsModal && selectedDept && (
+        <DepartmentDetailsModal department={selectedDept} onClose={() => setShowDetailsModal(false)} />
+      )}
+
 
     </div>
   );

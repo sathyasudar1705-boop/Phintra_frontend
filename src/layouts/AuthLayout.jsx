@@ -3,12 +3,17 @@ import { Outlet, useLocation } from 'react-router-dom';
 
 const AuthLayout = () => {
   const location = useLocation();
-  const isLoginPage = location.pathname === '/admin/login' || 
-                      location.pathname === '/user/login' || 
-                      location.pathname === '/login' || 
-                      location.pathname === '/employee-login';
 
-  if (isLoginPage) {
+  // All auth pages render as full-page layouts (no wrapper card)
+  const isFullPageAuth =
+    location.pathname === '/admin/login' ||
+    location.pathname === '/user/login' ||
+    location.pathname === '/login' ||
+    location.pathname === '/employee-login' ||
+    location.pathname === '/register' ||
+    location.pathname === '/forgot-password';
+
+  if (isFullPageAuth) {
     return <Outlet />;
   }
 

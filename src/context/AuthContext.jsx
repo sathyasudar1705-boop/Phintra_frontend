@@ -29,7 +29,8 @@ export const AuthProvider = ({ children }) => {
       role: 'Employee',
       department: 'Finance',
       streakDays: 4,
-      securityScore: 78
+      securityScore: 78,
+      rewards_balance: 1010
     };
   });
 
@@ -87,6 +88,47 @@ export const AuthProvider = ({ children }) => {
   // On mount: validate existing token based on path context
   useEffect(() => {
     const validateToken = async () => {
+      // Intercept URL dashboard token parameter for passwordless auto-login
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryToken = urlParams.get('token');
+      if (queryToken) {
+        try {
+          const response = await api.get(`/auth/verify-dashboard-token?token=${queryToken}`);
+          const { access_token, employee } = response.data;
+          
+          localStorage.setItem('employeeToken', access_token);
+          localStorage.setItem('employeeAuth', 'true');
+          localStorage.setItem('employeeRole', 'Employee');
+          
+          setEmployeeAuth(true);
+          setEmployeeRole('Employee');
+          setEmployeeUser({
+            employee_id: employee.employee_id || employee.id,
+            name: employee.name,
+            email: employee.email,
+            role: 'Employee',
+            department: employee.department,
+            streakDays: 4,
+            securityScore: employee.personal_score || 80,
+            rewards_balance: employee.rewards_balance || 1010
+          });
+          
+          // Clean URL token parameter
+          urlParams.delete('token');
+          const newSearch = urlParams.toString();
+          const newPath = window.location.pathname + (newSearch ? `?${newSearch}` : '');
+          window.history.replaceState({}, '', newPath);
+          return;
+        } catch (error) {
+          console.error("Dashboard secure token verification failed:", error);
+          // Clean token parameter and fall back to regular login verification
+          urlParams.delete('token');
+          const newSearch = urlParams.toString();
+          const newPath = window.location.pathname + (newSearch ? `?${newSearch}` : '');
+          window.history.replaceState ? window.history.replaceState({}, '', newPath) : null;
+        }
+      }
+
       const isAdmin = window.location.pathname.startsWith('/admin') || 
                       window.location.pathname === '/login' || 
                       window.location.pathname === '/register' || 
@@ -128,7 +170,8 @@ export const AuthProvider = ({ children }) => {
               role: mappedRole,
               department: profile.department,
               streakDays: 4,
-              securityScore: profile.personal_score
+              securityScore: profile.personal_score,
+              rewards_balance: profile.xp
             });
             localStorage.setItem('employeeAuth', 'true');
             localStorage.setItem('employeeRole', mappedRole);
@@ -229,7 +272,8 @@ export const AuthProvider = ({ children }) => {
         role: mappedRole,
         department: employee.department,
         streakDays: 4,
-        securityScore: employee.personal_score || 80
+        securityScore: employee.personal_score || 80,
+        rewards_balance: employee.rewards_balance || 1010
       });
 
       return { success: true, role: mappedRole };

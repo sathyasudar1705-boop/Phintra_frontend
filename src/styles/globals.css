@@ -1,53 +1,65 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  /* Brand/Primary Colors: High-trust Premium Royal Blue */
-  --color-primary: #3b82f6;
-  --color-primary-hover: #2563eb;
-  --color-primary-light: rgba(59, 130, 246, 0.08);
+  /* Core Palette */
+  --color-primary-dark-navy: #0F172A;
+  --color-heading-black: #111827;
+  --color-enterprise-blue: #2563EB;
+  --color-azure-blue: #0078D4;
+  --color-cyan: #06B6D4;
+  --color-teal: #0D9488;
+  --color-page-bg: #FFFFFF;
+  --color-soft-bg: #F8FAFC;
+  --color-card-bg: #FFFFFF;
+  --color-border-gray: #E5E7EB;
+  --color-muted-text: #64748B;
+  --color-success-green: #10B981;
+  --color-warning-amber: #F59E0B;
+  --color-danger-red: #EF4444;
 
-  /* Teal Accent Colors: Sleek Cybersecurity/Tech Hue */
-  --color-teal: #0d9488;
+  /* Standardized theme mappings */
+  --color-primary: var(--color-enterprise-blue);
+  --color-primary-hover: var(--color-azure-blue);
+  --color-primary-light: rgba(37, 99, 235, 0.08);
+
   --color-teal-hover: #0f766e;
   --color-teal-light: rgba(13, 148, 136, 0.08);
 
-  /* Success Colors: Vibrant Emerald Green */
-  --color-success: #10b981;
+  --color-success: var(--color-success-green);
   --color-success-hover: #059669;
   --color-success-light: rgba(16, 185, 129, 0.08);
 
-  /* Warning Colors: Amber/Gold Warning Hues */
-  --color-warning: #f59e0b;
+  --color-warning: var(--color-warning-amber);
   --color-warning-light: rgba(245, 158, 11, 0.08);
 
-  /* Danger/Critical Colors: Clean Rose Red */
-  --color-danger: #ef4444;
+  --color-danger: var(--color-danger-red);
   --color-danger-light: rgba(239, 68, 68, 0.08);
 
   /* Surfaces & Backgrounds */
-  --bg-main: #ffffff;        /* Pure professional white background */
-  --bg-card: #ffffff;        /* Pure professional white background */
-  --bg-sidebar: #f8fafc;     /* Clean professional light slate sidebar */
+  --bg-main: var(--color-page-bg);
+  --bg-card: var(--color-card-bg);
+  --bg-sidebar: var(--color-soft-bg);
 
   /* Borders & Dividers */
-  --border-color: #e2e8f0;   /* Slate-200 */
-  --border-hover: #cbd5e1;   /* Slate-300 */
+  --border-color: var(--color-border-gray);
+  --border-hover: #cbd5e1;
 
   /* Typography / Text Colors */
-  --text-main: #0f172a;      /* Slate-900 for primary headings & text */
-  --text-muted: #334155;     /* Slate-700 for secondary body text */
-  --text-light: #64748b;     /* Slate-500 for descriptive/meta text */
-  --text-subtle: #94a3b8;    /* Slate-400 for placeholders / inactive states */
+  --text-main: var(--color-heading-black);
+  --text-muted: var(--color-primary-dark-navy);
+  --text-light: var(--color-muted-text);
+  --text-subtle: #94a3b8;
 
-  --shadow-soft: 0 1px 3px rgba(15, 23, 42, 0.08);
-  --shadow-sm: var(--shadow-soft);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+  /* Shadow removal per rule #7: Replace heavy shadows with subtle gray borders */
+  --shadow-soft: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
 
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
 }
 
 * {
@@ -96,12 +108,19 @@ body {
 
 /* Common Layout Components */
 .saas-card {
-  background: var(--bg-card);
+  background: rgba(255, 255, 255, 0.12);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 24px;
-  box-shadow: var(--shadow-sm);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  backdrop-filter: blur(12px) saturate(180%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.saas-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.18);
+  border-color: var(--border-hover);
 }
 
 .saas-card:hover {

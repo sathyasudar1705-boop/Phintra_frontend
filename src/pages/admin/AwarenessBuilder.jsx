@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToast } from '../../hooks/useToast';
-import { Eye, Save, Sparkles, Layout, RotateCcw, AlertTriangle, ArrowRight, Shield } from 'lucide-react';
+import { useAppContext } from '../../context/AppContext';
+import { Eye, Save, Sparkles, Layout, RotateCcw, AlertTriangle, ArrowRight, Shield, Mail, Trash2 } from 'lucide-react';
 import Button from '../../components/common/Button';
 
 const TEMPLATES = [
@@ -44,33 +45,142 @@ const TEMPLATES = [
 
 const AwarenessBuilder = () => {
   const toast = useToast();
+  const { 
+    awarenessPages, 
+    emailTemplates, 
+    addAwarenessPage, 
+    editAwarenessPage, 
+    deleteAwarenessPage 
+  } = useAppContext();
+
+  // Active DB Configuration Page State
+  const [activePageId, setActivePageId] = useState('');
+  
+  // Form Field States
   const [selectedTemplateId, setSelectedTemplateId] = useState(TEMPLATES[0].id);
   const [title, setTitle] = useState(TEMPLATES[0].title);
   const [message, setMessage] = useState(TEMPLATES[0].message);
   const [tipsText, setTipsText] = useState(TEMPLATES[0].tips.join('\n'));
   const [ctaText, setCtaText] = useState(TEMPLATES[0].ctaText);
   const [theme, setTheme] = useState(TEMPLATES[0].theme);
+  
+  // Associated Email template ID
+  const [selectedEmailTemplateId, setSelectedEmailTemplateId] = useState('');
+
   const [previewTab, setPreviewTab] = useState('desktop');
 
-  const handleTemplateChange = (id) => {
-    const template = TEMPLATES.find(t => t.id === id);
-    if (template) {
-      setSelectedTemplateId(id);
+  // Triggered when active configuration page changes
+  useEffect(() => {
+    if (activePageId === '') {
+      // Load selected default template
+      const template = TEMPLATES.find(t => t.id === selectedTemplateId) || TEMPLATES[0];
       setTitle(template.title);
       setMessage(template.message);
       setTipsText(template.tips.join('\n'));
       setCtaText(template.ctaText);
       setTheme(template.theme);
+      setSelectedEmailTemplateId('');
+    } else {
+      // Load saved database configuration
+      const page = (awarenessPages || []).find(p => p.id === activePageId);
+      if (page) {
+        setTitle(page.title);
+        try {
+          const config = JSON.parse(page.html_content);
+          setMessage(config.message || '');
+          setTipsText(Array.isArray(config.tips) ? config.tips.join('\n') : (config.tips || ''));
+          setCtaText(config.ctaText || '');
+          setTheme(config.theme || 'primary');
+          setSelectedEmailTemplateId(config.email_template_id || '');
+        } catch (e) {
+          console.warn("Failed to parse awareness page json config:", e);
+          setMessage(page.html_content || '');
+          setTipsText('');
+          setCtaText('Acknowledge');
+          setTheme('primary');
+          setSelectedEmailTemplateId('');
+        }
+      }
+    }
+  }, [activePageId, awarenessPages]);
+
+  const handleTemplateChange = (id) => {
+    setSelectedTemplateId(id);
+    if (activePageId === '') {
+      const template = TEMPLATES.find(t => t.id === id);
+      if (template) {
+        setTitle(template.title);
+        setMessage(template.message);
+        setTipsText(template.tips.join('\n'));
+        setCtaText(template.ctaText);
+        setTheme(template.theme);
+      }
     }
   };
 
   const handleReset = () => {
-    handleTemplateChange(selectedTemplateId);
+    if (activePageId) {
+      // Re-trigger useEffect
+      const page = (awarenessPages || []).find(p => p.id === activePageId);
+      if (page) {
+        setTitle(page.title);
+        try {
+          const config = JSON.parse(page.html_content);
+          setMessage(config.message || '');
+          setTipsText(Array.isArray(config.tips) ? config.tips.join('\n') : (config.tips || ''));
+          setCtaText(config.ctaText || '');
+          setTheme(config.theme || 'primary');
+          setSelectedEmailTemplateId(config.email_template_id || '');
+        } catch (e) {}
+      }
+    } else {
+      handleTemplateChange(selectedTemplateId);
+    }
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    toast.success(`Successfully saved awareness landing template: "${title}"`);
+
+    const config = {
+      message: message,
+      tips: tipsText.split('\n').filter(t => t.trim() !== ''),
+      ctaText: ctaText,
+      theme: theme,
+      email_template_id: selectedEmailTemplateId || null
+    };
+
+    const payload = {
+      title: title,
+      html_content: JSON.stringify(config)
+    };
+
+    try {
+      if (activePageId) {
+        await editAwarenessPage(activePageId, payload);
+        toast.success(`Successfully updated awareness redirection profile: "${title}"`);
+      } else {
+        const newPage = await addAwarenessPage(payload);
+        toast.success(`Successfully created awareness redirection profile: "${title}"`);
+        setActivePageId(newPage.id);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.detail || "Failed to save awareness page profile.");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!activePageId) return;
+    if (window.confirm(`Are you sure you want to delete the configuration "${title}"?`)) {
+      try {
+        await deleteAwarenessPage(activePageId);
+        toast.success("Successfully deleted awareness page configuration.");
+        setActivePageId("");
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to delete configuration.");
+      }
+    }
   };
 
   const getThemeColors = () => {
@@ -119,19 +229,98 @@ const AwarenessBuilder = () => {
           </div>
 
           <form onSubmit={handleSave}>
-            {/* Template Selection */}
+            {/* Active Configuration profile */}
             <div className="form-group">
-              <label className="form-label">Start from a Template</label>
+              <label className="form-label" style={{ fontWeight: '600' }}>Active Configuration Profile</label>
               <select 
                 className="form-control"
-                value={selectedTemplateId} 
-                onChange={(e) => handleTemplateChange(e.target.value)}
+                value={activePageId} 
+                onChange={(e) => setActivePageId(e.target.value)}
               >
-                {TEMPLATES.map(t => (
-                  <option key={t.id} value={t.id}>{t.title.substring(0, 45)}...</option>
+                <option value="">-- Create New Awareness Page --</option>
+                {(awarenessPages || []).map(p => (
+                  <option key={p.id} value={p.id}>{p.title}</option>
                 ))}
               </select>
             </div>
+
+            {/* Template Selection */}
+            {activePageId === '' && (
+              <div className="form-group">
+                <label className="form-label">Start from a Template Preset</label>
+                <select 
+                  className="form-control"
+                  value={selectedTemplateId} 
+                  onChange={(e) => handleTemplateChange(e.target.value)}
+                >
+                  {TEMPLATES.map(t => (
+                    <option key={t.id} value={t.id}>{t.title.substring(0, 45)}...</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Associated Email template */}
+            <div className="form-group">
+              <label className="form-label" style={{ fontWeight: '600' }}>Associated Phishing Email Template</label>
+              <select 
+                className="form-control"
+                value={selectedEmailTemplateId} 
+                onChange={(e) => setSelectedEmailTemplateId(e.target.value)}
+              >
+                <option value="">-- Select Linked Phishing Email Lure --</option>
+                {(emailTemplates || []).map(t => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.category})</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Linked template preview */}
+            {selectedEmailTemplateId && (
+              <div className="saas-card" style={{
+                backgroundColor: 'var(--bg-main)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                padding: '16px',
+                marginBottom: '20px',
+                fontSize: '12px',
+                color: 'var(--text-main)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: 'var(--shadow-sm)'
+              }}>
+                <h4 style={{ fontSize: '13px', fontWeight: '700', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Mail size={14} style={{ color: 'var(--color-primary)' }} />
+                  Linked Lure Parameters
+                </h4>
+                {(() => {
+                  const linkedTemp = emailTemplates.find(t => t.id === selectedEmailTemplateId);
+                  if (!linkedTemp) return <span>Loading template details...</span>;
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div><span style={{ color: 'var(--text-light)' }}>Sender:</span> <strong>{linkedTemp.sender_name}</strong> &lt;{linkedTemp.sender_email || 'lure@phintra-delivery.com'}&gt;</div>
+                      <div><span style={{ color: 'var(--text-light)' }}>Subject:</span> <strong>{linkedTemp.subject}</strong></div>
+                      <div><span style={{ color: 'var(--text-light)' }}>Category:</span> <span className="badge badge-reported" style={{ fontSize: '10px' }}>{linkedTemp.category}</span></div>
+                      
+                      <div style={{
+                        marginTop: '8px',
+                        padding: '10px',
+                        borderRadius: '6px',
+                        backgroundColor: 'var(--bg-card)',
+                        fontFamily: 'monospace',
+                        fontSize: '11px',
+                        maxHeight: '120px',
+                        overflowY: 'auto',
+                        whiteSpace: 'pre-wrap',
+                        border: '1px solid var(--border-hover)',
+                        lineHeight: '1.4'
+                      }}>
+                        {linkedTemp.body_text || linkedTemp.body || 'No text preview available.'}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             {/* Title */}
             <div className="form-group">
@@ -200,9 +389,14 @@ const AwarenessBuilder = () => {
             </div>
 
             <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginTop: '16px', display: 'flex', gap: '12px' }}>
-              <Button type="submit" variant="primary" icon={Save} style={{ flex: 1 }}>
-                Save Template
+              <Button type="submit" variant="primary" icon={Save} style={{ flex: 2 }}>
+                {activePageId ? "Update Configuration" : "Save Configuration"}
               </Button>
+              {activePageId && (
+                <Button type="button" variant="danger" icon={Trash2} onClick={handleDelete} style={{ flex: 1 }}>
+                  Delete Page
+                </Button>
+              )}
             </div>
           </form>
         </div>

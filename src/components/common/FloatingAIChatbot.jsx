@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, Send, X } from 'lucide-react';
-import Button from './Button';
-import { sendMessageToAI, AIConnectionError } from '../../services/huggingFaceService';
+import { Send, X, Bot } from 'lucide-react';
+import api from '../../services/api';
+import { useAppContext } from '../../context/AppContext';
 import { useConfirm } from '../../hooks/useConfirm';
+import Button from './Button';
 
 const FloatingAIChatbot = () => {
   const confirm = useConfirm();
+  const { userRole } = useAppContext();
   const [isOpen, setIsOpen] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   
-  // Set messages from localStorage or use a professional, emoji-free welcome message
+  // Set messages from localStorage
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem('phintra_ai_chat');
     if (saved) {
@@ -20,7 +22,7 @@ const FloatingAIChatbot = () => {
     return [{
       id: 'welcome',
       sender: 'bot',
-      text: 'Hello. I am your Phintra AI Assistant. How can I help secure your workspace today?',
+      text: 'Hello. I am your Phintra AI Assistant. How can I help you analyze security awareness metrics today?',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }];
   });
@@ -32,12 +34,18 @@ const FloatingAIChatbot = () => {
 
   const messagesEndRef = useRef(null);
 
-  // Auto scroll to latest messages or typing state changes
+  // Auto scroll to latest messages
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isTyping]);
+
+  // Security Role check: ONLY show for Admin role
+  const isAdminRole = userRole === 'Security Administrator' || userRole === 'Admin' || window.location.pathname.startsWith('/admin');
+  if (!isAdminRole) {
+    return null;
+  }
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
@@ -46,47 +54,14 @@ const FloatingAIChatbot = () => {
     }
   };
 
-  const predefinedReplies = {
-    risk: {
-      query: "Analyze my risk score",
-      reply: "Your current security risk score is moderate. Focus on completing pending training and reviewing recent simulation feedback."
-    },
-    phishing: {
-      query: "Explain phishing red flags",
-      reply: "Common phishing red flags include suspicious sender addresses, urgent or threatening language, unexpected attachments, and mismatched links."
-    },
-    training: {
-      query: "Show training gaps",
-      reply: "AI analysis shows that users with incomplete training are more likely to fail phishing simulations."
-    },
-    recommendation: {
-      query: "Recommend next action",
-      reply: "Recommended action: complete assigned modules, report suspicious emails, and review simulation red flags."
-    }
-  };
-
-  // Predefined keyword-based local fallback responses when Hugging Face API fails
-  const getLocalFallbackResponse = (userText) => {
-    const query = userText.toLowerCase().trim();
-    
-    if (query.includes('phish')) {
-      return "Phishing emails usually exhibit red flags such as suspicious sender addresses, urgent or threatening language, unexpected attachments, and mismatched links. Always verify the sender and avoid clicking suspicious links.";
-    }
-    if (query.includes('password')) {
-      return "To maintain password safety, use strong, unique passwords for every account. Avoid reusing passwords. Passwords should be long, containing a combination of uppercase letters, lowercase letters, numbers, and special symbols.";
-    }
-    if (query.includes('mfa')) {
-      return "Multi-Factor Authentication (MFA) adds an extra layer of security by requiring two or more verification factors to gain access. Even if a threat actor obtains your password, they cannot access your account without the second factor (like an SMS code or authenticator app token).";
-    }
-    if (query.includes('risk') || query.includes('score')) {
-      return "To improve your security score in Phintra, complete your assigned training modules, answer weekly challenges, and successfully report simulated phishing emails rather than clicking them.";
-    }
-    if (query.includes('train')) {
-      return "We recommend completing any pending training modules in your Learning Center. Active modules include tutorials on identifying suspicious attachments, spotter challenges, and cybersecurity basics.";
-    }
-    
-    return "I'm currently operating in fallback mode. I can help guide you on email security, password safety, multi-factor authentication, security risk scores, or Phintra training modules. What would you like to discuss?";
-  };
+  const predefinedQuestions = [
+    "How many employees do we have?",
+    "Which department has the highest risk?",
+    "Which employees have not completed training?",
+    "What is the awareness score?",
+    "Show reported emails summary.",
+    "How many campaigns were sent?"
+  ];
 
   // Chat message submit handler
   const handleSendMessage = async (text) => {
@@ -100,19 +75,18 @@ const FloatingAIChatbot = () => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    const currentHistory = [...messages, userMsg];
-    setMessages(currentHistory);
+    setMessages(prev => [...prev, userMsg]);
     setIsTyping(true);
 
     try {
-      // 2. Dispatch query to Hugging Face Inference API
-      const responseText = await sendMessageToAI(text, messages);
+      // 2. Dispatch query to backend AI Assistant endpoint (admin-scoped only)
+      const res = await api.post('/admin/ai-assistant', { question: text });
       setIsTyping(false);
       
       const botMsg = {
         id: `bot-${Date.now()}`,
         sender: 'bot',
-        text: responseText,
+        text: res.data.answer,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       
@@ -120,33 +94,14 @@ const FloatingAIChatbot = () => {
     } catch (err) {
       setIsTyping(false);
       console.error("AI Assistant API failed:", err);
-      
-      if (err.isActionable) {
-        // Display the specific actionable error message instead of generic fallback
-        const botMsg = {
-          id: `bot-error-${Date.now()}`,
-          sender: 'bot',
-          text: `Error: ${err.message}`,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        setMessages(prev => [...prev, botMsg]);
-      } else {
-        // Activate fallback mode as a last resort:
-        // Log the exact condition that triggered fallback mode
-        const tokenLoaded = !!import.meta.env.VITE_HF_API_TOKEN;
-        const condition = `Token verified: ${tokenLoaded ? "Yes" : "No"}. Model endpoints tried: mistralai/Mistral-7B-Instruct-v0.2 and google/gemma-2-2b-it. Retry logic: Exhausted/Checked. Response parsing: Attempted. Error: ${err.message}`;
-        console.log(`Fallback mode triggered: ${condition}`);
-        
-        // Obtain keyword-based local fallback response
-        const fallbackText = getLocalFallbackResponse(text);
-        const botMsg = {
-          id: `bot-fallback-${Date.now()}`,
-          sender: 'bot',
-          text: fallbackText,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        setMessages(prev => [...prev, botMsg]);
-      }
+      const errMsg = err.response?.data?.detail || "Failed to get response from Phintra AI service. Verify GEMINI_API_KEY is configured.";
+      const botMsg = {
+        id: `bot-error-${Date.now()}`,
+        sender: 'bot',
+        text: `Error: ${errMsg}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, botMsg]);
     }
   };
 
@@ -157,12 +112,12 @@ const FloatingAIChatbot = () => {
     setInputValue('');
   };
 
-  const handleSuggestionClick = (suggestion) => {
+  const handleSuggestionClick = (question) => {
     if (isTyping) return;
-    handleSendMessage(suggestion);
+    handleSendMessage(question);
   };
 
-  // Clear Chat History handler
+  // Clear Chat History
   const handleClearChat = async () => {
     const confirmed = await confirm({
       title: 'Clear Chat History?',
@@ -175,7 +130,7 @@ const FloatingAIChatbot = () => {
     const welcomeMsg = [{
       id: 'welcome',
       sender: 'bot',
-      text: 'Hello. I am your Phintra AI Assistant. How can I help secure your workspace today?',
+      text: 'Hello. I am your Phintra AI Assistant. How can I help you analyze security awareness metrics today?',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }];
     setMessages(welcomeMsg);
@@ -197,11 +152,11 @@ const FloatingAIChatbot = () => {
           width: 56px;
           height: 56px;
           border-radius: 50%;
-          background: linear-gradient(135deg, var(--color-primary, var(--color-primary)) 0%, var(--color-teal, var(--color-teal)) 100%);
+          background: linear-gradient(135deg, var(--color-primary, #3b82f6) 0%, var(--color-teal, #14b8a6) 100%);
           box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
           display: flex;
           align-items: center;
-          justifyContent: center;
+          justify-content: center;
           color: #ffffff;
           border: none;
           cursor: pointer;
@@ -217,22 +172,18 @@ const FloatingAIChatbot = () => {
           box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
         }
 
-        .ai-chat-fab:active {
-          transform: scale(0.95);
-        }
-
         /* Tooltip style */
         .ai-chat-fab-tooltip {
           position: absolute;
           right: 70px;
-          background-color: var(--text-main, var(--text-main));
+          background-color: var(--text-main, #1e293b);
           color: #ffffff;
           padding: 6px 12px;
           border-radius: 6px;
           font-size: 12px;
           font-weight: 500;
           white-space: nowrap;
-          box-shadow: var(--shadow-md, 0 4px 6px rgba(0,0,0,0.05));
+          box-shadow: 0 4px 6px rgba(0,0,0,0.05);
           opacity: 0;
           pointer-events: none;
           transform: translateX(10px);
@@ -251,7 +202,7 @@ const FloatingAIChatbot = () => {
           right: 2px;
           width: 12px;
           height: 12px;
-          background-color: var(--color-danger, var(--color-danger));
+          background-color: var(--color-danger, #ef4444);
           border-radius: 50%;
           border: 2.5px solid #ffffff;
           animation: pulse 2s infinite;
@@ -265,9 +216,9 @@ const FloatingAIChatbot = () => {
           width: 380px;
           height: 540px;
           background-color: var(--bg-card, #ffffff);
-          border: 1px solid var(--border-color, var(--border-color));
+          border: 1px solid var(--border-color, #e2e8f0);
           border-radius: var(--radius-lg, 14px);
-          box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0,0,0,0.05));
+          box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
           display: flex;
           flex-direction: column;
           overflow: hidden;
@@ -281,7 +232,7 @@ const FloatingAIChatbot = () => {
           align-items: center;
           justify-content: space-between;
           padding: 16px 20px;
-          border-bottom: 1px solid var(--border-color, var(--border-color));
+          border-bottom: 1px solid var(--border-color, #e2e8f0);
           background-color: #ffffff;
         }
 
@@ -293,7 +244,7 @@ const FloatingAIChatbot = () => {
         .ai-chat-header-title {
           font-size: 15px;
           font-weight: 700;
-          color: var(--text-main, var(--text-main));
+          color: var(--text-main, #1e293b);
           display: flex;
           align-items: center;
           gap: 6px;
@@ -301,7 +252,7 @@ const FloatingAIChatbot = () => {
 
         .ai-chat-header-subtitle {
           font-size: 11px;
-          color: var(--text-light, var(--text-light));
+          color: var(--text-light, #64748b);
           font-weight: 500;
           margin-top: 1px;
         }
@@ -309,19 +260,19 @@ const FloatingAIChatbot = () => {
         .ai-chat-close-btn {
           border: none;
           background: transparent;
-          color: var(--text-subtle, var(--text-subtle));
+          color: var(--text-subtle, #94a3b8);
           cursor: pointer;
           display: flex;
           align-items: center;
-          justifyContent: center;
+          justify-content: center;
           padding: 4px;
           border-radius: 50%;
           transition: all 0.15s ease;
         }
 
         .ai-chat-close-btn:hover {
-          color: var(--text-main, var(--text-main));
-          background-color: var(--bg-sidebar);
+          color: var(--text-main, #1e293b);
+          background-color: var(--bg-sidebar, #f8fafc);
         }
 
         /* Messages area */
@@ -332,7 +283,7 @@ const FloatingAIChatbot = () => {
           display: flex;
           flex-direction: column;
           gap: 16px;
-          background-color: var(--bg-main);
+          background-color: var(--bg-main, #f8fafc);
         }
 
         .ai-chat-msg-row {
@@ -357,22 +308,22 @@ const FloatingAIChatbot = () => {
         }
 
         .ai-chat-msg-row.user .ai-chat-bubble {
-          background-color: var(--color-primary-light, var(--color-primary-light));
-          color: var(--color-primary-hover, var(--color-primary));
+          background-color: var(--color-primary-light, #eff6ff);
+          color: var(--color-primary-hover, #1d4ed8);
           border-radius: 14px 14px 0 14px;
           border: 1px solid rgba(59, 130, 246, 0.1);
         }
 
         .ai-chat-msg-row.bot .ai-chat-bubble {
           background-color: #ffffff;
-          color: var(--text-main, var(--text-main));
+          color: var(--text-main, #1e293b);
           border-radius: 14px 14px 14px 0;
-          border: 1px solid var(--border-color, var(--border-color));
+          border: 1px solid var(--border-color, #e2e8f0);
         }
 
         .ai-chat-msg-time {
           font-size: 10px;
-          color: var(--text-subtle, var(--text-subtle));
+          color: var(--text-subtle, #94a3b8);
           margin-top: 4px;
           display: block;
           text-align: right;
@@ -388,39 +339,35 @@ const FloatingAIChatbot = () => {
           gap: 8px;
           padding: 16px 20px 12px 20px;
           background-color: #ffffff;
-          border-top: 1px solid var(--border-color, var(--border-color));
+          border-top: 1px solid var(--border-color, #e2e8f0);
           align-items: center;
         }
 
         .ai-chat-input-field {
           flex: 1;
           height: 36px;
-          border: 1px solid var(--border-color, var(--border-color));
+          border: 1px solid var(--border-color, #e2e8f0);
           border-radius: var(--radius-sm, 6px);
           padding: 8px 14px;
           font-size: 13px;
           outline: none;
-          color: var(--text-main, var(--text-main));
+          color: var(--text-main, #1e293b);
           transition: all 0.15s ease;
         }
 
         .ai-chat-input-field:focus {
-          border-color: var(--color-primary, var(--color-primary));
+          border-color: var(--color-primary, #3b82f6);
           box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
         }
 
-        .ai-chat-input-field::placeholder {
-          color: var(--text-subtle, var(--text-subtle));
-        }
-
-        /* Suggestions chips (placed below the input) */
+        /* Suggestions chips */
         .ai-chat-suggestions {
           display: flex;
           flex-wrap: nowrap;
           overflow-x: auto;
           gap: 6px;
           padding: 0 20px 20px 20px;
-          background-color: transparent;
+          background-color: #ffffff;
           scrollbar-width: none;
         }
         .ai-chat-suggestions::-webkit-scrollbar {
@@ -431,9 +378,9 @@ const FloatingAIChatbot = () => {
           flex-shrink: 0;
           font-size: 11px;
           font-weight: 500;
-          color: var(--text-muted, var(--text-muted));
-          background-color: var(--bg-sidebar);
-          border: 1px solid transparent;
+          color: var(--text-muted, #475569);
+          background-color: var(--bg-sidebar, #f8fafc);
+          border: 1px solid #e2e8f0;
           padding: 5px 10px;
           border-radius: 20px;
           cursor: pointer;
@@ -442,12 +389,12 @@ const FloatingAIChatbot = () => {
         }
 
         .ai-chat-chip:hover {
-          color: var(--color-primary-hover, var(--color-primary));
-          background-color: var(--color-primary-light, var(--color-primary-light));
+          color: var(--color-primary, #3b82f6);
+          background-color: var(--color-primary-light, #eff6ff);
           border-color: rgba(59, 130, 246, 0.2);
         }
 
-        /* Typing loading indicator */
+        /* Typing indicator */
         .ai-chat-typing {
           display: flex;
           align-items: center;
@@ -458,76 +405,29 @@ const FloatingAIChatbot = () => {
         .ai-chat-typing span {
           width: 6px;
           height: 6px;
-          background-color: var(--text-subtle, var(--text-subtle));
+          background-color: var(--text-subtle, #94a3b8);
           border-radius: 50%;
           display: inline-block;
           animation: bounce 1.4s infinite ease-in-out both;
         }
 
-        .ai-chat-typing span:nth-child(1) {
-          animation-delay: -0.32s;
-        }
+        .ai-chat-typing span:nth-child(1) { animation-delay: -0.32s; }
+        .ai-chat-typing span:nth-child(2) { animation-delay: -0.16s; }
 
-        .ai-chat-typing span:nth-child(2) {
-          animation-delay: -0.16s;
-        }
-
-        /* Animations */
         @keyframes bounce {
-          0%, 80%, 100% { 
-            transform: scale(0);
-          } 40% { 
-            transform: scale(1.0);
-          }
+          0%, 80%, 100% { transform: scale(0); }
+          40% { transform: scale(1.0); }
         }
 
         @keyframes pulse {
-          0% {
-            transform: scale(0.95);
-            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-          }
-          70% {
-            transform: scale(1);
-            box-shadow: 0 0 0 5px rgba(239, 68, 68, 0);
-          }
-          100% {
-            transform: scale(0.95);
-            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
-          }
+          0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+          70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(59, 130, 246, 0); }
+          100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
         }
 
         @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(24px) scale(0.96);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        /* Responsive Mobile Layout */
-        @media (max-width: 576px) {
-          .ai-chat-panel {
-            bottom: 80px;
-            right: 12px;
-            left: 12px;
-            width: calc(100vw - 24px);
-            height: calc(100vh - 110px);
-            max-height: 520px;
-          }
-          
-          .ai-chat-fab {
-            bottom: 16px;
-            right: 16px;
-            width: 48px;
-            height: 48px;
-          }
-          
-          .ai-chat-fab-tooltip {
-            display: none !important;
-          }
+          from { opacity: 0; transform: translateY(24px) scale(0.96); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
 
@@ -538,17 +438,12 @@ const FloatingAIChatbot = () => {
           <div className="ai-chat-header">
             <div className="ai-chat-header-info">
               <div className="ai-chat-header-title">
-                <img 
-                  src="https://i.pinimg.com/736x/bc/2f/fa/bc2ffa513b384b50a4406cc04d0aaa58.jpg" 
-                  alt="AI Assistant avatar" 
-                  style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} 
-                />
-                AI Assistant
+                <Bot size={20} style={{ color: 'var(--color-primary, #3b82f6)' }} />
+                Phintra AI Assistant
               </div>
-              <div className="ai-chat-header-subtitle">Security Intelligence Support</div>
+              <div className="ai-chat-header-subtitle">Admin Scoped Security Insights</div>
             </div>
             
-            {/* Header controls including Clear option */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button 
                 type="button"
@@ -558,14 +453,11 @@ const FloatingAIChatbot = () => {
                   border: 'none',
                   fontSize: '11px',
                   fontWeight: '600',
-                  color: 'var(--text-light, var(--text-light))',
+                  color: 'var(--text-light, #64748b)',
                   cursor: 'pointer',
                   padding: '4px 8px',
                   borderRadius: '4px',
-                  transition: 'background 0.15s ease'
                 }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-sidebar)'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
               >
                 Clear
               </button>
@@ -579,13 +471,6 @@ const FloatingAIChatbot = () => {
           <div className="ai-chat-messages">
             {messages.map((msg) => (
               <div key={msg.id} className={`ai-chat-msg-row ${msg.sender}`}>
-                {msg.sender === 'bot' && (
-                  <img 
-                    src="https://i.pinimg.com/736x/bc/2f/fa/bc2ffa513b384b50a4406cc04d0aaa58.jpg" 
-                    alt="Bot Avatar" 
-                    style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', marginRight: '8px', flexShrink: 0, border: '1px solid var(--border-color, var(--border-color))' }}
-                  />
-                )}
                 <div className="ai-chat-bubble">
                   {msg.text}
                   <span className="ai-chat-msg-time">{msg.timestamp}</span>
@@ -596,11 +481,6 @@ const FloatingAIChatbot = () => {
             {/* Animated Typing Indicator */}
             {isTyping && (
               <div className="ai-chat-msg-row bot">
-                <img 
-                  src="https://i.pinimg.com/736x/bc/2f/fa/bc2ffa513b384b50a4406cc04d0aaa58.jpg" 
-                  alt="Bot Avatar" 
-                  style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', marginRight: '8px', flexShrink: 0, border: '1px solid var(--border-color, var(--border-color))' }}
-                />
                 <div className="ai-chat-bubble" style={{ padding: '8px 12px' }}>
                   <div className="ai-chat-typing">
                     <span></span>
@@ -614,12 +494,27 @@ const FloatingAIChatbot = () => {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Quick Suggestion Chips (placed ABOVE input) */}
+          <div className="ai-chat-suggestions">
+            {predefinedQuestions.map((q, idx) => (
+              <button 
+                key={idx}
+                type="button"
+                className="ai-chat-chip"
+                onClick={() => handleSuggestionClick(q)}
+                disabled={isTyping}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+
           {/* Input Section */}
           <form className="ai-chat-input-form" onSubmit={handleInputSubmit}>
             <input
               type="text"
               className="ai-chat-input-field"
-              placeholder="Ask anything about security..."
+              placeholder="Ask about employees, training, risk, campaigns..."
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               disabled={isTyping}
@@ -641,58 +536,14 @@ const FloatingAIChatbot = () => {
               }}
             />
           </form>
-
-          {/* Quick Suggestion Chips (placed BELOW input) */}
-          <div className="ai-chat-suggestions">
-            <button 
-              type="button"
-              className="ai-chat-chip"
-              onClick={() => handleSuggestionClick(predefinedReplies.risk.query)}
-              disabled={isTyping}
-            >
-              Analyze my risk score
-            </button>
-            <button 
-              type="button"
-              className="ai-chat-chip"
-              onClick={() => handleSuggestionClick(predefinedReplies.phishing.query)}
-              disabled={isTyping}
-            >
-              Explain phishing red flags
-            </button>
-            <button 
-              type="button"
-              className="ai-chat-chip"
-              onClick={() => handleSuggestionClick(predefinedReplies.training.query)}
-              disabled={isTyping}
-            >
-              Show training gaps
-            </button>
-            <button 
-              type="button"
-              className="ai-chat-chip"
-              onClick={() => handleSuggestionClick(predefinedReplies.recommendation.query)}
-              disabled={isTyping}
-            >
-              Recommend next action
-            </button>
-          </div>
         </div>
       )}
 
       {/* Floating Action Button */}
       {!isOpen && (
         <button className="ai-chat-fab animate-pulse-soft" onClick={handleToggle} aria-label="Open AI Assistant">
-          <img 
-            src="https://i.pinimg.com/736x/bc/2f/fa/bc2ffa513b384b50a4406cc04d0aaa58.jpg" 
-            alt="AI Assistant Avatar" 
-            style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-          />
-          
-          {/* Notification Dot */}
+          <Bot size={28} />
           {showNotification && <div className="ai-chat-notif-dot" />}
-          
-          {/* Custom Tooltip */}
           <span className="ai-chat-fab-tooltip">AI Assistant</span>
         </button>
       )}

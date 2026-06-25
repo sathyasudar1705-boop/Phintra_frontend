@@ -1,484 +1,362 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
-import { 
-  Eye, 
-  EyeOff, 
-  ShieldAlert, 
-  ArrowRight, 
-  ShieldCheck, 
-  Brain, 
-  Lock, 
-  Mail, 
-  Sparkles, 
-  Target, 
-  BarChart3 
+import api from '../../services/api';
+import {
+  Eye, EyeOff, ShieldAlert, ShieldCheck, Lock, Mail, ShieldHalf,
 } from 'lucide-react';
-import Button from '../../components/common/Button';
+import loginIllustration from '../../assets/login_illustration.png';
+import phintraLogo from '../../assets/phintra_logo.png';
 
 const EmployeeLogin = () => {
   const { employeeLogin, isAuthenticated, userRole } = useAppContext();
   const navigate = useNavigate();
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
-  // Validation and Error states
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [generalError, setGeneralError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Gmail Add-on SSO Token Login Interceptor
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('addon_token') || params.get('token');
+    if (token) {
+      const exchangeToken = async () => {
+        setLoading(true); setGeneralError('');
+        try {
+          const response = await api.post('/auth/addon/validate-token', { token });
+          const { access_token, employee } = response.data;
+          localStorage.setItem('employeeToken', access_token);
+          localStorage.setItem('employeeAuth', 'true');
+          localStorage.setItem('employeeRole', 'Employee');
+          localStorage.setItem('employeeUser', JSON.stringify({
+            employee_id: employee.employee_id || employee.id,
+            name: employee.name, email: employee.email,
+            role: 'Employee', department: employee.department,
+            streakDays: 4, securityScore: employee.personal_score || 80,
+          }));
+          window.location.href = '/user/dashboard';
+        } catch (err) {
+          setLoading(false);
+          setGeneralError(err.response?.data?.detail || 'SSO authentication failed. The token may be expired or invalid.');
+        }
+      };
+      exchangeToken();
+    }
+  }, [navigate]);
+
   // Redirect if already authenticated
   React.useEffect(() => {
     if (isAuthenticated) {
-      if (userRole === 'Employee') {
-        navigate('/user/dashboard');
-      } else if (userRole === 'Security Administrator') {
-        navigate('/admin/dashboard');
-      } else if (userRole === 'Security Manager') {
-        navigate('/admin/manager-dashboard');
-      }
+      if (userRole === 'Employee') navigate('/user/dashboard');
+      else if (userRole === 'Security Administrator') navigate('/admin/dashboard');
+      else if (userRole === 'Security Manager') navigate('/admin/manager-dashboard');
     }
   }, [isAuthenticated, userRole, navigate]);
 
-  // Pre-fills demo employee account
   const handleDemoSelect = () => {
     setEmail('employee@phintra.com');
     setPassword('employee123');
-    setEmailError('');
-    setPasswordError('');
-    setGeneralError('');
+    setEmailError(''); setPasswordError(''); setGeneralError('');
   };
 
-  // Form submission handler
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setEmailError('');
-    setPasswordError('');
-    setGeneralError('');
-
+    setEmailError(''); setPasswordError(''); setGeneralError('');
     let hasError = false;
-
-    // Email validation checks
-    if (!email.trim()) {
-      setEmailError('Email address is required');
-      hasError = true;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      setEmailError('Please enter a valid email address');
-      hasError = true;
-    }
-
-    // Password validation checks
-    if (!password) {
-      setPasswordError('Password is required');
-      hasError = true;
-    }
-
+    if (!email.trim()) { setEmailError('Email address is required'); hasError = true; }
+    else if (!/\S+@\S+\.\S+/.test(email)) { setEmailError('Please enter a valid email address'); hasError = true; }
+    if (!password) { setPasswordError('Password is required'); hasError = true; }
     if (hasError) return;
-
     setLoading(true);
-
     try {
       const res = await employeeLogin(email, password);
       setLoading(false);
-      
-      if (res.success) {
-        navigate('/user/dashboard');
-      } else {
-        setGeneralError(res.message || 'Incorrect email or password');
-      }
+      if (res.success) navigate('/user/dashboard');
+      else setGeneralError(res.message || 'Incorrect email or password');
     } catch (err) {
       setLoading(false);
       setGeneralError('A connection error occurred. Please check that the server is online.');
     }
   };
 
-  return (
-    <div className="login-container" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-main)', fontFamily: 'Inter, sans-serif' }}>
-      
-      {/* 1. Left Panel (Brand Section) */}
-      <div className="login-left-panel" style={{
-        flex: '1.2',
-        backgroundColor: 'var(--bg-card)',
-        padding: '64px 80px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-        borderRight: '1px solid var(--border-color)'
-      }}>
-        {/* Soft blue gradient accent spheres */}
-        <div className="gradient-sphere sphere-1" />
-        <div className="gradient-sphere sphere-2" />
+  const inputStyle = (hasError) => ({
+    width: '100%',
+    padding: '13px 14px 13px 44px',
+    border: `1.5px solid ${hasError ? '#EF4444' : '#E2E8F0'}`,
+    borderRadius: '12px',
+    fontSize: '14px',
+    fontWeight: '500',
+    outline: 'none',
+    background: hasError ? '#FEF2F2' : '#F8FAFC',
+    color: '#0F172A',
+    boxSizing: 'border-box',
+    transition: 'all 0.2s ease',
+    fontFamily: 'inherit',
+  });
 
-        <div style={{ maxWidth: '520px', position: 'relative', zIndex: 10 }}>
-          {/* Prominent Logo & Wordmark */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '40px' }}>
-            <img 
-              src="https://i.pinimg.com/1200x/5c/07/7c/5c077c6c718fb0216266ccf723d011d3.jpg" 
-              alt="Phintra Logo" 
-              style={{ width: '44px', height: '44px', borderRadius: '10px', objectFit: 'cover', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.1)' }}
-            />
+  return (
+    <div style={{
+      display: 'flex',
+      minHeight: '100vh',
+      fontFamily: "'Inter', 'Outfit', -apple-system, sans-serif",
+      background: '#F1F5F9',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
+    }}>
+      <div className="auth-card" style={{
+        display: 'flex',
+        width: '100%',
+        maxWidth: '1100px',
+        background: '#FFFFFF',
+        borderRadius: '24px',
+        boxShadow: '0 24px 48px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.04)',
+        overflow: 'hidden',
+        position: 'relative',
+        minHeight: '650px',
+      }}>
+        {/* ── LEFT: Branding/Illustration ── */}
+        <div className="auth-left-panel" style={{
+          flex: 1.1,
+          background: 'linear-gradient(145deg, #F8FAFC 0%, #F1F5F9 100%)',
+          padding: '56px 48px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          textAlign: 'center',
+          position: 'relative',
+          borderRight: '1px solid #E2E8F0',
+        }}>
+          {/* Decorative blobs */}
+          <div style={{ position: 'absolute', top: '-100px', left: '-100px', width: '300px', height: '300px', borderRadius: '50%', background: 'rgba(16,185,129,0.06)', filter: 'blur(60px)' }} />
+          <div style={{ position: 'absolute', bottom: '-80px', right: '-80px', width: '250px', height: '250px', borderRadius: '50%', background: 'rgba(59,130,246,0.05)', filter: 'blur(50px)' }} />
+          
+          {/* Logo */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0px', position: 'relative', zIndex: 10, marginBottom: '40px' }}>
+            <img src={phintraLogo} alt="Phintra Logo" style={{ width: '120px', height: '120px', objectFit: 'contain' }} />
             <div>
-              <h1 style={{ fontSize: '26px', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '-0.03em', margin: 0 }}>Phintra</h1>
-              <p style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: '700', letterSpacing: '0.05em', margin: 0, textTransform: 'uppercase' }}>Cybersecurity Awareness Platform</p>
+              <div style={{ fontSize: '24px', fontWeight: '800', color: '#0F172A', letterSpacing: '-0.02em' }}>Phintra</div>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: '#10B981', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Employee Portal</div>
             </div>
           </div>
 
-          {/* Headline and Description */}
-          <h2 style={{ fontSize: '32px', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '-0.025em', lineHeight: '1.25' }}>
-            Enhance your security awareness and knowledge
-          </h2>
-          <p style={{ fontSize: '15px', color: 'var(--text-muted)', marginTop: '16px', lineHeight: '1.6' }}>
-            Participate in cybersecurity training, complete quizzes, and keep yourself and your organization safe against phishing and social engineering.
-          </p>
+          {/* Content */}
+          <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <h2 style={{ fontSize: '34px', fontWeight: '800', color: '#0F172A', margin: '0 0 16px', letterSpacing: '-0.03em', lineHeight: 1.2 }}>
+              Learn. Level Up.<br />Stay Secure.
+            </h2>
+            <p style={{ fontSize: '15px', color: '#475569', lineHeight: 1.6, margin: '0 0 40px', fontWeight: '500' }}>
+              Complete training modules, earn XP, climb the leaderboard, and become your organization's security champion.
+            </p>
 
-          {/* Feature Highlights Vertical List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', marginTop: '48px' }}>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-              <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.06)', color: 'var(--color-primary)', padding: '10px', borderRadius: '10px', display: 'flex', flexShrink: 0 }}>
-                <Brain size={20} />
-              </div>
-              <div>
-                <h4 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-main)', margin: 0 }}>Interactive micro-learning</h4>
-                <p style={{ fontSize: '13px', color: 'var(--text-light)', marginTop: '4px', lineHeight: '1.5' }}>
-                  Learn on the go with curated learning bytes and interactive red flag training.
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-              <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.06)', color: 'var(--color-primary)', padding: '10px', borderRadius: '10px', display: 'flex', flexShrink: 0 }}>
-                <ShieldCheck size={20} />
-              </div>
-              <div>
-                <h4 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-main)', margin: 0 }}>Verify your skills</h4>
-                <p style={{ fontSize: '13px', color: 'var(--text-light)', marginTop: '4px', lineHeight: '1.5' }}>
-                  Earn certificates and XP as you successfully complete quizzes and security challenges.
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-              <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.06)', color: 'var(--color-primary)', padding: '10px', borderRadius: '10px', display: 'flex', flexShrink: 0 }}>
-                <Target size={20} />
-              </div>
-              <div>
-                <h4 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-main)', margin: 0 }}>Simulated threat detection</h4>
-                <p style={{ fontSize: '13px', color: 'var(--text-light)', marginTop: '4px', lineHeight: '1.5' }}>
-                  Practice identifying phishing indicators in a safe, controlled simulator.
-                </p>
-              </div>
-            </div>
+            <Link to="/admin/login" className="auth-side-link" style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              padding: '12px 20px', borderRadius: '99px',
+              background: '#FFFFFF', border: '1px solid #E2E8F0',
+              fontSize: '13.5px', fontWeight: '700', color: '#334155',
+              textDecoration: 'none', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.03)',
+              transition: 'all 0.2s ease', zIndex: 10
+            }}>
+              <ShieldHalf size={16} color="#10B981" />
+              Admin Login
+            </Link>
           </div>
         </div>
-      </div>
 
-      {/* 2. Right Panel (Login Card) */}
-      <div className="login-right-panel" style={{
-        flex: '1',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '48px 32px',
-        backgroundColor: 'var(--bg-sidebar)',
-        position: 'relative'
-      }}>
-        <div style={{ maxWidth: '440px', width: '100%', position: 'relative', zIndex: 10 }}>
-          
-          {/* Card Container */}
-          <div className="saas-card shadow-premium" style={{ 
-            padding: '40px', 
-            borderRadius: '16px',
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-color)'
-          }}>
-            
-            {/* Header text */}
-            <div style={{ marginBottom: '28px' }}>
-              <h3 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>Employee Login</h3>
-              <p style={{ fontSize: '14px', color: 'var(--text-light)', marginTop: '6px', margin: 0 }}>Sign in to access your training dashboard.</p>
+        {/* ── RIGHT: Login Form ── */}
+        <div className="auth-right-panel" style={{
+          flex: 1,
+          padding: '64px 56px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          background: '#FFFFFF',
+        }}>
+          {/* Header */}
+          <div style={{ marginBottom: '32px' }}>
+            <p style={{ fontSize: '12px', fontWeight: '700', color: '#10B981', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 8px' }}>EMPLOYEE LOGIN</p>
+            <h1 style={{ fontSize: '30px', fontWeight: '900', color: '#0F172A', margin: '0 0 8px', letterSpacing: '-0.03em' }}>Welcome Back</h1>
+            <p style={{ fontSize: '14.5px', color: '#64748B', margin: 0, fontWeight: '500' }}>Sign in to continue your security training.</p>
+          </div>
+
+          {/* General Error */}
+          {generalError && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              background: '#FEF2F2', border: '1px solid #FCA5A5',
+              borderRadius: '12px', padding: '12px 16px',
+              fontSize: '13.5px', color: '#EF4444', marginBottom: '24px', fontWeight: '600',
+              animation: 'slideUp 0.25s ease both',
+            }}>
+              <ShieldAlert size={18} style={{ flexShrink: 0 }} />
+              {generalError}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Email */}
+            <div>
+              <label style={{ fontSize: '12.5px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '8px', letterSpacing: '0.02em' }}>
+                Email Address
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={18} color="#94A3B8" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                <input
+                  type="email"
+                  placeholder="employee@company.com"
+                  value={email}
+                  onChange={e => { setEmail(e.target.value); setEmailError(''); }}
+                  disabled={loading}
+                  style={inputStyle(emailError)}
+                  className="auth-input"
+                />
+              </div>
+              {emailError && <p style={{ fontSize: '12px', color: '#EF4444', margin: '6px 0 0', fontWeight: '600' }}>{emailError}</p>}
             </div>
 
-            {/* General Credentials Error Alert */}
-            {generalError && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                backgroundColor: 'var(--color-danger-light)',
-                border: '1px solid var(--color-danger-light)',
-                borderRadius: '8px',
-                padding: '12px 14px',
-                fontSize: '13px',
-                color: 'var(--color-danger)',
-                marginBottom: '20px'
-              }}>
-                <ShieldAlert size={18} style={{ flexShrink: 0 }} />
-                <span style={{ fontWeight: '500' }}>{generalError}</span>
-              </div>
-            )}
-
-            {/* Login Form */}
-            <form onSubmit={handleSubmit} noValidate>
-              
-              {/* Email Address Input */}
-              <div className="form-group" style={{ marginBottom: '20px' }}>
-                <label className="form-label" htmlFor="email" style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '6px' }}>Work Email</label>
-                <div className="login-input-container">
-                  <Mail size={18} className="login-input-icon" />
-                  <input 
-                    id="email"
-                    type="email"
-                    className={`login-input ${emailError ? 'login-input-error' : ''}`}
-                    placeholder="your.email@company.com"
-                    value={email}
-                    onChange={(e) => { setEmail(e.target.value); setEmailError(''); setGeneralError(''); }}
-                    disabled={loading}
-                    required
-                  />
-                </div>
-                {emailError && <div style={{ fontSize: '12px', color: 'var(--color-danger)', marginTop: '5px', fontWeight: '500' }}>{emailError}</div>}
-              </div>
-
-              {/* Password Input */}
-              <div className="form-group" style={{ marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <label className="form-label" htmlFor="password" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', margin: 0 }}>Password</label>
-                </div>
-                <div className="login-input-container">
-                  <Lock size={18} className="login-input-icon" />
-                  <input 
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    className={`login-input login-input-password ${passwordError ? 'login-input-error' : ''}`}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => { setPassword(e.target.value); setPasswordError(''); setGeneralError(''); }}
-                    disabled={loading}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="password-toggle-btn"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                {passwordError && <div style={{ fontSize: '12px', color: 'var(--color-danger)', marginTop: '5px', fontWeight: '500' }}>{passwordError}</div>}
-              </div>
-
-              {/* Remember me option */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    style={{ 
-                      width: '16px', 
-                      height: '16px', 
-                      accentColor: 'var(--color-primary)', 
-                      cursor: 'pointer' 
-                    }}
-                  />
-                  Remember me
+            {/* Password */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontSize: '12.5px', fontWeight: '700', color: '#475569', letterSpacing: '0.02em' }}>
+                  Password
                 </label>
+                <Link to="/forgot-password" className="auth-link" style={{ fontSize: '12.5px', color: '#10B981', fontWeight: '700', textDecoration: 'none' }}>
+                  Forgot password?
+                </Link>
               </div>
-
-              {/* Submit Sign In Button */}
-              <Button
-                type="submit"
-                variant="primary"
-                style={{ width: '100%', height: '42px', borderRadius: '8px', fontSize: '14px', fontWeight: '600' }}
-                disabled={loading}
-                loading={loading}
-                iconRight={ArrowRight}
-              >
-                Sign In
-              </Button>
-            </form>
-
-            {/* Quick selector Demo Account Buttons */}
-            <div style={{ marginTop: '28px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-              <span style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', textAlign: 'center' }}>Quick Access Demo</span>
-              <div className="demo-btn-group" style={{ display: 'flex', justifyContent: 'center' }}>
-                <button 
-                  type="button"
-                  onClick={handleDemoSelect}
-                  className="demo-btn"
-                  style={{ width: '100%', padding: '8px' }}
-                >
-                  Load Demo Employee Credentials
+              <div style={{ position: 'relative' }}>
+                <Lock size={18} color="#94A3B8" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={e => { setPassword(e.target.value); setPasswordError(''); }}
+                  disabled={loading}
+                  style={{ ...inputStyle(passwordError), paddingRight: '44px' }}
+                  className="auth-input"
+                />
+                <button type="button" onClick={() => setShowPassword(p => !p)}
+                  style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#94A3B8', display: 'flex', alignItems: 'center' }}>
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              {passwordError && <p style={{ fontSize: '12px', color: '#EF4444', margin: '6px 0 0', fontWeight: '600' }}>{passwordError}</p>}
             </div>
 
-            {/* Small Encrypted Security Note */}
-            <div style={{
-              marginTop: '24px',
-              textAlign: 'center',
-              fontSize: '12px',
-              color: 'var(--text-subtle)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px'
-            }}>
-              <Lock size={12} />
-              <span>Secure connection established</span>
+            {/* Remember me */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}>
+              <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)}
+                style={{ width: '16px', height: '16px', accentColor: '#10B981', cursor: 'pointer', borderRadius: '4px' }} />
+              <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '600' }}>Remember me for 30 days</span>
+            </label>
+
+            {/* Sign In button */}
+            <button type="submit" disabled={loading}
+              className="auth-submit-btn"
+              style={{
+                width: '100%', padding: '14px', borderRadius: '12px',
+                background: loading ? '#6EE7B7' : '#10B981',
+                border: 'none', color: '#FFFFFF', fontSize: '15px', fontWeight: '800',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+                transition: 'all 0.2s', letterSpacing: '0.02em', marginTop: '4px'
+              }}
+            >
+              {loading ? 'Signing in…' : 'Sign In to Portal'}
+            </button>
+          </form>
+
+          {/* Quick demo */}
+          <div style={{ marginTop: '28px' }}>
+            <p style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '700', textAlign: 'center', marginBottom: '12px', letterSpacing: '0.06em' }}>QUICK DEMO ACCESS</p>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <button type="button" onClick={handleDemoSelect}
+                className="auth-demo-pill"
+                style={{
+                  padding: '10px 24px', borderRadius: '10px',
+                  border: `1.5px solid #10B98130`, background: `#10B98110`,
+                  color: '#10B981', fontSize: '13px', fontWeight: '700',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                }}>
+                Auto-fill Employee Demo
+              </button>
             </div>
-
           </div>
-
-          {/* Registration link back to admin portal login */}
-          <div style={{
-            marginTop: '28px',
-            textAlign: 'center',
-            fontSize: '13px',
-            color: 'var(--text-light)'
-          }}>
-            Are you an administrator?{' '}
-            <Link to="/admin/login" style={{ fontWeight: '600', color: 'var(--color-primary)', textDecoration: 'none' }}>Admin Login</Link>
-          </div>
-
         </div>
+
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+          .auth-input:focus {
+            border-color: #10B981 !important;
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15) !important;
+            background: #FFFFFF !important;
+          }
+
+          .auth-submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            background: #059669 !important;
+            box-shadow: 0 8px 24px rgba(5, 150, 105, 0.3) !important;
+          }
+
+          .auth-submit-btn:active:not(:disabled) { transform: translateY(0); }
+
+          .auth-side-link:hover {
+            background: #F8FAFC !important;
+            color: #0F172A !important;
+            border-color: #CBD5E1 !important;
+            box-shadow: 0 8px 16px rgba(15, 23, 42, 0.05) !important;
+            transform: translateY(-2px);
+          }
+
+          .auth-demo-pill:hover {
+            filter: brightness(0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+          }
+          
+          .auth-link:hover {
+            text-decoration: underline !important;
+          }
+
+          .auth-illustration-container:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.1) !important;
+            border-color: #CBD5E1 !important;
+          }
+
+          @keyframes slideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+
+          .auth-right-panel {
+            animation: slideUp 0.4s ease both;
+          }
+
+          /* Tablet */
+          @media (max-width: 1100px) {
+            .auth-card { flex-direction: column; max-width: 520px !important; }
+            .auth-left-panel { flex: none !important; border-right: none !important; border-bottom: 1px solid #E2E8F0; padding: 40px !important; }
+            .auth-right-panel { padding: 40px !important; }
+            .auth-illustration-container { display: none; }
+          }
+
+          /* Mobile */
+          @media (max-width: 600px) {
+            .auth-card { border-radius: 0 !important; min-height: 100vh; box-shadow: none !important; }
+            .auth-left-panel { padding: 32px 24px !important; }
+            .auth-right-panel { padding: 32px 24px !important; }
+          }
+        `}</style>
       </div>
-
-      {/* Styled custom CSS properties representing standard SaaS login behaviors */}
-      <style>{`
-        .gradient-sphere {
-          position: absolute;
-          width: 500px;
-          height: 500px;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0) 70%);
-          border-radius: 50%;
-          pointer-events: none;
-          z-index: 1;
-        }
-        .sphere-1 {
-          top: -200px;
-          left: -150px;
-        }
-        .sphere-2 {
-          bottom: -200px;
-          right: -100px;
-        }
-        .shadow-premium {
-          box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.03), 0 8px 16px -8px rgba(0, 0, 0, 0.03) !important;
-        }
-        .login-input-container {
-          position: relative;
-          display: flex;
-          align-items: center;
-          width: 100%;
-        }
-        .login-input-icon {
-          position: absolute;
-          left: 14px;
-          color: var(--text-subtle);
-          pointer-events: none;
-        }
-        .login-input {
-          width: 100%;
-          height: 42px;
-          padding: 10px 14px 10px 42px;
-          font-size: 14px;
-          border: 1px solid var(--border-hover);
-          border-radius: 8px;
-          background: #ffffff;
-          color: var(--text-main);
-          transition: all 0.15s ease-out;
-          font-family: inherit;
-        }
-        .login-input:focus {
-          border-color: var(--color-primary);
-          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
-          outline: none;
-        }
-        .login-input-error {
-          border-color: var(--color-danger) !important;
-        }
-        .login-input-error:focus {
-          box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08) !important;
-        }
-        .login-input-password {
-          padding-right: 42px;
-        }
-        .password-toggle-btn {
-          position: absolute;
-          right: 14px;
-          background: transparent;
-          border: none;
-          cursor: pointer;
-          color: var(--text-subtle);
-          padding: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: color 0.15s ease;
-        }
-        .password-toggle-btn:hover {
-          color: var(--text-muted);
-        }
-        .demo-btn-group {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 12px;
-          width: 100%;
-        }
-        .demo-btn {
-          background: #ffffff;
-          border: 1px solid var(--border-color);
-          border-radius: 8px;
-          padding: 10px 12px;
-          font-size: 13px;
-          font-weight: 550;
-          color: var(--text-muted);
-          cursor: pointer;
-          transition: all 0.15s ease-out;
-          text-align: center;
-          font-family: inherit;
-        }
-        .demo-btn:hover {
-          background: var(--bg-main);
-          border-color: var(--border-hover);
-          color: var(--text-main);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-        }
-        @media (max-width: 900px) {
-          .login-container {
-            flex-direction: column !important;
-          }
-          .login-left-panel {
-            padding: 48px 32px !important;
-            flex: none !important;
-            width: 100% !important;
-            box-sizing: border-box;
-          }
-          .login-right-panel {
-            padding: 32px 16px !important;
-            flex: none !important;
-            width: 100% !important;
-            box-sizing: border-box;
-            background-color: var(--bg-sidebar) !important;
-          }
-          .saas-card {
-            padding: 24px !important;
-          }
-        }
-        @media (max-width: 640px) {
-          .login-left-panel {
-            display: none !important;
-          }
-        }
-      `}</style>
-
     </div>
   );
 };

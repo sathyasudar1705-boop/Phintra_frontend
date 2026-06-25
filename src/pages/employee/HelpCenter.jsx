@@ -5,6 +5,7 @@ import { Search, ChevronDown, ChevronUp, Mail, ShieldCheck, CheckCircle2, AlertC
 import Button from '../../components/common/Button';
 
 const HelpCenter = () => {
+  const { supportMessages = [], sendSupportMessage } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFaqIdx, setExpandedFaqIdx] = useState(null);
   
@@ -31,7 +32,7 @@ const HelpCenter = () => {
            faq.answer.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const handleContactSubmit = (e) => {
+  const handleContactSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -43,18 +44,22 @@ const HelpCenter = () => {
 
     setLoading(true);
 
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const fullText = `[Subject: ${contactSubject}] ${contactMessage}`;
+      await sendSupportMessage(fullText);
       setSuccess('Message sent to Corporate Security! A response will be dispatched shortly.');
-      
       setContactSubject('');
       setContactMessage('');
-
+      
       setTimeout(() => {
         setShowContactModal(false);
         setSuccess('');
-      }, 1200);
-    }, 800);
+      }, 1500);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to send support message.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -245,6 +250,87 @@ const HelpCenter = () => {
           </div>
         </div>
       )}
+
+      {/* Live Chat Thread with Security Team */}
+      <div className="saas-card" style={{ marginTop: '32px', padding: '24px' }}>
+        <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Mail size={18} style={{ color: 'var(--color-primary)' }} />
+          Security Team Secure Chat Thread
+        </h3>
+
+        <div style={{
+          border: '1px solid var(--border-color)',
+          borderRadius: '8px',
+          backgroundColor: 'var(--bg-main)',
+          padding: '16px',
+          maxHeight: '320px',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          marginBottom: '16px'
+        }}>
+          {supportMessages.length === 0 ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-light)', padding: '24px 0' }}>
+              <p style={{ fontSize: '13px' }}>No messages found. Send a message using the form above to start a secure discussion.</p>
+            </div>
+          ) : (
+            supportMessages.map((msg) => {
+              const isAdmin = msg.sender_role.toLowerCase() === 'admin';
+              return (
+                <div 
+                  key={msg.id}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignSelf: isAdmin ? 'flex-start' : 'flex-end',
+                    maxWidth: '70%',
+                    backgroundColor: isAdmin ? 'var(--bg-card)' : 'var(--color-primary-light)',
+                    border: '1px solid ' + (isAdmin ? 'var(--border-color)' : '#bfdbfe'),
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '700', color: isAdmin ? 'var(--color-primary)' : 'var(--text-main)' }}>
+                      {msg.sender_name || (isAdmin ? 'Security Officer' : 'You')}
+                    </span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-subtle)' }}>
+                      {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '13px', color: 'var(--text-main)', margin: 0, whiteSpace: 'pre-wrap' }}>
+                    {msg.message_text}
+                  </p>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Quick Send Input at the bottom of the chat */}
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          const txt = e.target.elements.chatMsg.value;
+          if (!txt.trim()) return;
+          try {
+            await sendSupportMessage(txt);
+            e.target.elements.chatMsg.value = '';
+          } catch (err) {
+            alert('Failed to send message');
+          }
+        }} style={{ display: 'flex', gap: '8px' }}>
+          <input 
+            name="chatMsg"
+            type="text" 
+            placeholder="Type a secure message to security officers..." 
+            className="form-control"
+            style={{ flex: 1, margin: 0 }}
+          />
+          <Button variant="primary" type="submit">Send</Button>
+        </form>
+      </div>
 
     </div>
   );

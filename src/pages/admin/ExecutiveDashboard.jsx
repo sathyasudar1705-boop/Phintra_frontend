@@ -11,9 +11,9 @@ import {
 const ExecutiveDashboard = () => {
   const toast = useToast();
   const riskOverview = [
-    { name: 'Low Risk', value: 45, color: 'var(--color-success)' },
-    { name: 'Medium Risk', value: 35, color: 'var(--color-warning)' },
-    { name: 'High Risk', value: 20, color: 'var(--color-danger)' }
+    { name: 'Low Risk', value: 45, color: 'var(--color-teal)' },
+    { name: 'Medium Risk', value: 35, color: 'var(--color-cyan)' },
+    { name: 'High Risk', value: 20, color: 'var(--color-primary)' }
   ];
 
   const deptComparison = [
@@ -130,7 +130,7 @@ const ExecutiveDashboard = () => {
                 <Tooltip />
                 <Bar dataKey="score" fill="var(--color-primary)" radius={[0, 4, 4, 0]}>
                   {deptComparison.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.score < 70 ? 'var(--color-danger)' : entry.score < 85 ? 'var(--color-warning)' : 'var(--color-success)'} />
+                    <Cell key={`cell-${index}`} fill={entry.score < 70 ? 'var(--color-primary)' : entry.score < 85 ? 'var(--color-cyan)' : 'var(--color-teal)'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -151,8 +151,8 @@ const ExecutiveDashboard = () => {
               <YAxis yAxisId="right" orientation="right" style={{ fontSize: '12px' }} />
               <Tooltip />
               <Legend iconType="circle" />
-              <Line yAxisId="left" type="monotone" name="Maturity Score" dataKey="maturity" stroke="var(--color-success)" strokeWidth={3} />
-              <Line yAxisId="right" type="monotone" name="Security Incidents" dataKey="incidents" stroke="var(--color-danger)" strokeWidth={3} />
+              <Line yAxisId="left" type="monotone" name="Maturity Score" dataKey="maturity" stroke="var(--color-teal)" strokeWidth={3} />
+              <Line yAxisId="right" type="monotone" name="Security Incidents" dataKey="incidents" stroke="var(--color-cyan)" strokeWidth={3} />
             </LineChart>
           </ResponsiveContainer>
         </div>

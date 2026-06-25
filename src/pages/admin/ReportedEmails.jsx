@@ -326,6 +326,40 @@ const AdminReportedEmails = () => {
                 </div>
               </div>
 
+              {/* Employee Messages / Comments */}
+              {selectedReport.messages && selectedReport.messages.length > 0 && (
+                <div style={{
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  backgroundColor: 'var(--bg-sidebar)',
+                  marginTop: '8px'
+                }}>
+                  <h4 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '10px' }}>
+                    Employee Comments & Notes
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '180px', overflowY: 'auto' }}>
+                    {selectedReport.messages.map((msg) => (
+                      <div key={msg.id} style={{
+                        padding: '10px 12px',
+                        borderRadius: '6px',
+                        backgroundColor: 'var(--bg-card)',
+                        border: '1px solid var(--border-color)',
+                        fontSize: '12px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontWeight: '600', color: 'var(--text-main)' }}>
+                          <span>{msg.sender_name}</span>
+                          <span style={{ fontSize: '10px', color: 'var(--text-subtle)' }}>
+                            {new Date(msg.created_at).toLocaleString()}
+                          </span>
+                        </div>
+                        <p style={{ margin: 0, color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>{msg.message_text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Triage action board */}
               <div style={{
                 borderTop: '1px solid var(--border-color)',

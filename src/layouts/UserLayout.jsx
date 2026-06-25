@@ -1,103 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import UserSidebar from '../components/user/UserSidebar';
 import UserTopbar from '../components/user/UserTopbar';
 import CommandPaletteModal from '../components/common/CommandPaletteModal';
 import NotificationDrawer from '../components/common/NotificationDrawer';
 
 const UserLayout = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   useEffect(() => {
-    const handleGlobalKeyDown = (e) => {
+    const handleKey = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         setSearchOpen(true);
       }
     };
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
   }, []);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
-      
-      {/* Sidebar (handles both Desktop & Mobile drawers) */}
-      <UserSidebar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#F8FAFC' }}>
+      <UserTopbar
+        onSearchClick={() => setSearchOpen(true)}
+        onNotificationsClick={() => setNotificationsOpen(true)}
+      />
 
-      {/* Main Content Layout Container */}
-      <div style={{
+      <main style={{
         flex: 1,
-        marginLeft: '260px',
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: '100vh',
-        width: 'calc(100% - 260px)'
-      }} className="main-content-layout">
-        
-        {/* Top Navbar */}
-        <UserTopbar 
-          onMenuClick={() => setMobileMenuOpen(true)} 
-          onSearchClick={() => setSearchOpen(true)} 
-          onNotificationsClick={() => setNotificationsOpen(true)} 
-        />
-
-        {/* Content Outlet */}
-        <main style={{ flex: 1, padding: '32px', overflowY: 'auto' }} className="app-main-content">
-          <div className="animate-page-enter">
-            <Outlet />
-          </div>
-        </main>
-      </div>
+        padding: '32px 24px',
+        width: '100%',
+        maxWidth: '1400px',
+        margin: '0 auto',
+        boxSizing: 'border-box',
+        overflowY: 'auto'
+      }} className="emp-main-content">
+        <Outlet />
+      </main>
 
       <CommandPaletteModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
       <NotificationDrawer isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
 
-      {/* Simple styling rules injected via a style block to handle desktop vs mobile display toggle */}
       <style>{`
-        @media (max-width: 991px) {
-          .desktop-sidebar-only {
-            display: none !important;
-          }
-          .main-content-layout {
-            margin-left: 0 !important;
-            width: 100% !important;
-          }
-          .mobile-burger-only {
-            display: block !important;
-          }
-          .app-header-nav {
-            padding: 0 16px !important;
-          }
-          .app-main-content {
-            padding: 16px !important;
-          }
-          .search-bar-responsive {
-            display: none !important;
-          }
-          .page-title-responsive {
-            display: none !important;
-          }
-          .badge-system-user {
-            display: none !important;
-          }
-          .profile-text-responsive {
-            display: none !important;
-          }
-        }
-        .sidebar-nav-user-hover:hover {
-          background-color: var(--border-color) !important;
-          color: var(--text-main) !important;
-        }
-        .search-input-hover:hover {
-          background-color: var(--border-color) !important;
-          border-color: var(--border-hover) !important;
-        }
-        .notification-btn-hover:hover {
-          background-color: var(--bg-sidebar) !important;
-          border-color: var(--border-hover) !important;
+        @media (max-width: 768px) {
+          .emp-main-content { padding: 20px 16px !important; }
         }
       `}</style>
     </div>

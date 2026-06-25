@@ -33,11 +33,11 @@ const riskTrendData = [
 ];
 
 const departmentRiskData = [
-  { department: 'Finance', risk: 62, color: 'var(--color-danger)' },
-  { department: 'HR', risk: 54, color: 'var(--color-warning)' },
-  { department: 'Sales', risk: 47, color: 'var(--color-warning)' },
-  { department: 'IT', risk: 18, color: 'var(--color-success)' },
-  { department: 'Operations', risk: 39, color: 'var(--color-warning)' }
+  { department: 'Finance', risk: 62, color: 'var(--color-primary)' },
+  { department: 'HR', risk: 54, color: 'var(--color-cyan)' },
+  { department: 'Sales', risk: 47, color: 'var(--color-cyan)' },
+  { department: 'IT', risk: 18, color: 'var(--color-teal)' },
+  { department: 'Operations', risk: 39, color: 'var(--color-cyan)' }
 ];
 
 const recommendations = [

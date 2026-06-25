@@ -41,6 +41,10 @@ export const AppProvider = ({ children }) => {
   const [departments, setDepartments] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [companies, setCompanies] = useState([]);
+  const [currentEnterprise, setCurrentEnterprise] = useState(null);
+  const [supportMessages, setSupportMessages] = useState([]);
+  const [adminThreads, setAdminThreads] = useState([]);
+  const [awarenessPages, setAwarenessPages] = useState([]);
 
   // Local-only / Fallback States
   const [trainingModules, setTrainingModules] = useState(() => {
@@ -82,75 +86,169 @@ export const AppProvider = ({ children }) => {
   const fetchData = async () => {
     if (!isAuthenticated) return;
     try {
-      // Fetch notifications for all roles if authenticated
-      try {
-        const notifRes = await api.get('/notifications');
-        setNotifications(notifRes.data);
-      } catch (e) {
-        console.warn("Could not fetch notifications:", e);
-      }
+      const promises = [
+        api.get('/notifications')
+          .then(res => setNotifications(res.data))
+          .catch(e => console.warn("Could not fetch notifications:", e))
+      ];
 
       if (userRole === 'Security Administrator' || userRole === 'Security Manager') {
-        const empRes = await api.get('/employees');
-        setEmployees(empRes.data);
-        
-        const campRes = await api.get('/campaigns');
-        setCampaigns(campRes.data);
-        
-        const tempRes = await api.get('/email-templates');
-        const mappedTemplates = tempRes.data.map(t => ({
-          id: t.id,
-          name: t.title || "",
-          subject: t.subject || "",
-          body: t.body_html || "",
-          category: t.category || "Credential Theft",
-          difficulty: t.difficulty || "Medium",
-          sender_name: t.sender_name || "System Notification"
-        }));
-        setEmailTemplates(mappedTemplates);
-        
-        const repRes = await api.get('/reported-emails');
-        const mappedReports = repRes.data.map(r => ({
-          id: r.id,
-          employeeName: r.employee_name || "Unknown Employee",
-          senderEmail: r.email_sender || "unknown@sender.com",
-          subject: r.email_subject || "No Subject",
-          campaignName: r.campaign_name || "External Gmail Report",
-          riskScore: r.risk_score || 0,
-          riskLevel: r.risk_level || ((r.risk_score || 0) > 70 ? "High" : (r.risk_score || 0) > 30 ? "Medium" : "Low"),
-          status: r.report_status || "Pending",
-          createdAt: r.created_at || r.reported_at,
-          reportedDate: r.reported_at ? (typeof r.reported_at === 'string' ? r.reported_at.split('T')[0] : new Date(r.reported_at).toISOString().split('T')[0]) : (r.created_at ? (typeof r.created_at === 'string' ? r.created_at.split('T')[0] : new Date(r.created_at).toISOString().split('T')[0]) : new Date().toISOString().split('T')[0]),
-          body: r.email_body || "",
-          departmentId: r.department_id || null
-        }));
-        // Sort newest reports first by createdAt date
-        mappedReports.sort((a, b) => {
-          const dateA = new Date(a.createdAt || a.reportedDate || 0);
-          const dateB = new Date(b.createdAt || b.reportedDate || 0);
-          return dateB - dateA;
-        });
-        setReportedEmails(mappedReports);
-        
-        const deptRes = await api.get('/departments');
-        setDepartments(deptRes.data);
-        
-        try {
-          const compRes = await api.get('/companies');
-          setCompanies(compRes.data);
-        } catch (e) {
-          console.warn("Could not fetch companies:", e);
-        }
+        promises.push(
+          api.get('/employees')
+            .then(res => setEmployees(res.data))
+            .catch(e => console.warn("Could not fetch employees:", e))
+        );
+        promises.push(
+          api.get('/campaigns')
+            .then(res => setCampaigns(res.data))
+            .catch(e => console.warn("Could not fetch campaigns:", e))
+        );
+        promises.push(
+          api.get('/email-templates').then(res => {
+            const mappedTemplates = res.data.map(t => ({
+              id: t.id,
+              name: t.template_name || t.title || "",
+              subject: t.subject || "",
+              body: t.body_html || "",
+              body_html: t.body_html || "",
+              body_text: t.body_text || "",
+              category: t.category || "Credential Theft",
+              difficulty: t.difficulty || "Medium",
+              sender_name: t.sender_display_name || t.sender_name || "System Notification",
+              sender_email: t.sender_email || "",
+              is_system_template: t.is_system_template,
+              created_by_admin_id: t.created_by_admin_id
+            }));
+            setEmailTemplates(mappedTemplates);
+          }).catch(e => console.warn("Could not fetch email templates:", e))
+        );
+        promises.push(
+          api.get('/reported-emails').then(res => {
+            const mappedReports = res.data.map(r => ({
+              id: r.id,
+              employeeName: r.employee_name || "Unknown Employee",
+              senderEmail: r.email_sender || "unknown@sender.com",
+              subject: r.email_subject || "No Subject",
+              campaignName: r.campaign_name || "External Gmail Report",
+              riskScore: r.risk_score || 0,
+              riskLevel: r.risk_level || ((r.risk_score || 0) > 70 ? "High" : (r.risk_score || 0) > 30 ? "Medium" : "Low"),
+              status: r.report_status || "Pending",
+              createdAt: r.created_at || r.reported_at,
+              reportedDate: r.reported_at ? (typeof r.reported_at === 'string' ? r.reported_at.split('T')[0] : new Date(r.reported_at).toISOString().split('T')[0]) : (r.created_at ? (typeof r.created_at === 'string' ? r.created_at.split('T')[0] : new Date(r.created_at).toISOString().split('T')[0]) : new Date().toISOString().split('T')[0]),
+              body: r.email_body || "",
+              departmentId: r.department_id || null,
+              messages: r.messages || []
+            }));
+            mappedReports.sort((a, b) => {
+              const dateA = new Date(a.createdAt || a.reportedDate || 0);
+              const dateB = new Date(b.createdAt || b.reportedDate || 0);
+              return dateB - dateA;
+            });
+            setReportedEmails(mappedReports);
+          }).catch(e => console.warn("Could not fetch reported emails:", e))
+        );
+        promises.push(
+          api.get('/departments')
+            .then(res => setDepartments(res.data))
+            .catch(e => console.warn("Could not fetch departments:", e))
+        );
+        promises.push(
+          api.get('/companies')
+            .then(res => {
+              setCompanies(res.data);
+              if (res.data && res.data.length > 0) {
+                // If only one enterprise, set it as current; otherwise keep existing selection
+                setCurrentEnterprise(res.data[0]);
+              }
+            })
+            .catch(e => console.warn("Could not fetch companies:", e))
+        );
+        promises.push(
+          api.get('/messages/admin/threads')
+            .then(res => setAdminThreads(res.data))
+            .catch(e => console.warn("Could not fetch admin support message threads:", e))
+        );
+        promises.push(
+          api.get('/awareness-pages')
+            .then(res => setAwarenessPages(res.data))
+            .catch(e => console.warn("Could not fetch awareness pages:", e))
+        );
         
         if (userRole === 'Security Administrator') {
-          try {
-            const auditRes = await api.get('/audit-logs');
-            setAuditLogs(auditRes.data);
-          } catch (e) {
-            console.warn("Could not fetch audit logs:", e);
-          }
+          promises.push(
+            api.get('/audit-logs')
+              .then(res => setAuditLogs(res.data))
+              .catch(e => console.warn("Could not fetch audit logs:", e))
+          );
         }
+      } else if (userRole === 'Employee') {
+        promises.push(
+          api.get('/auth/employee/dashboard').then(res => {
+            setCurrentUser(prev => ({
+              ...prev,
+              ...res.data,
+              securityScore: res.data.security_score,
+              trainingCompletion: res.data.training_completion,
+              unreadMessageCount: res.data.unread_message_count,
+              companyName: res.data.company_name,
+              companyAddress: res.data.company_address
+            }));
+
+            if (res.data.certificates) {
+              const mappedCerts = res.data.certificates.map(c => ({
+                id: c.id,
+                name: `${c.module_title} Completion Certificate`,
+                courseName: c.module_title,
+                dateEarned: c.issued_at.split('T')[0],
+                verification_code: c.verification_code
+              }));
+              setCertificates(mappedCerts);
+            }
+          }).catch(e => console.warn("Could not fetch employee dashboard data:", e))
+        );
+        promises.push(
+          api.get('/campaigns/employee/campaign-feed').then(res => {
+            const mappedSims = res.data.map(c => ({
+              id: c.campaign_id,
+              name: c.campaign_name,
+              date: c.send_date.split('T')[0],
+              result: c.interaction_status === "Reported" ? "Reported" : (c.interaction_status === "Clicked" ? "Failed" : "Passed"),
+              duration: "N/A",
+              difficulty: c.difficulty,
+              templateCategory: c.category,
+              subject: c.subject,
+              sender_name: c.sender_name,
+              description: c.description,
+              interaction_status: c.interaction_status
+            }));
+            setSimulations(mappedSims);
+          }).catch(e => console.warn("Could not fetch employee campaign feed:", e))
+        );
+        promises.push(
+          api.get('/leaderboard/employee').then(res => {
+            const raw = res.data || [];
+            const mappedLb = raw.map(item => ({
+              rank: item.rank,
+              name: item.employee_name,
+              department: item.department,
+              securityScore: item.security_score,
+              badges: item.badge ? [item.badge] : [],
+              percentile: Math.round(((raw.length - item.rank + 1) / raw.length) * 100),
+              total_xp: item.total_points,
+              reports_count: item.report_count,
+              completion_percentage: item.training_completed_count * 20
+            }));
+            setLeaderboard(mappedLb);
+          }).catch(e => console.warn("Could not fetch employee company leaderboard:", e))
+        );
+        promises.push(
+          api.get('/messages/thread')
+            .then(res => setSupportMessages(res.data))
+            .catch(e => console.warn("Could not fetch employee support messages:", e))
+        );
       }
+
+      await Promise.all(promises);
     } catch (error) {
       console.error("Error fetching data from API:", error);
     }
@@ -158,10 +256,6 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(() => {
-      fetchData();
-    }, 5000);
-    return () => clearInterval(interval);
   }, [isAuthenticated, userRole]);
 
   // Sync remaining local states to LocalStorage on updates
@@ -365,10 +459,12 @@ export const AppProvider = ({ children }) => {
   const addTemplate = async (template) => {
     try {
       const response = await api.post('/email-templates', {
-        title: template.name,
+        template_name: template.name,
         subject: template.subject,
-        sender_name: template.sender_name || 'System Notification',
-        body_html: template.body,
+        sender_display_name: template.sender_name || 'System Notification',
+        sender_email: template.sender_email || '',
+        body_html: template.body_html || template.body || '',
+        body_text: template.body_text || '',
         category: template.category,
         difficulty: template.difficulty
       });
@@ -383,10 +479,12 @@ export const AppProvider = ({ children }) => {
   const editTemplate = async (id, template) => {
     try {
       const response = await api.put(`/email-templates/${id}`, {
-        title: template.name,
+        template_name: template.name,
         subject: template.subject,
-        sender_name: template.sender_name || 'System Notification',
-        body_html: template.body,
+        sender_display_name: template.sender_name || 'System Notification',
+        sender_email: template.sender_email || '',
+        body_html: template.body_html || template.body || '',
+        body_text: template.body_text || '',
         category: template.category,
         difficulty: template.difficulty
       });
@@ -398,12 +496,61 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const cloneTemplate = async (id) => {
+    try {
+      const response = await api.post(`/email-templates/${id}/clone`);
+      await fetchData();
+      return response.data;
+    } catch (error) {
+      console.error("Failed to clone template:", error);
+      throw error;
+    }
+  };
+
   const deleteTemplate = async (id) => {
     try {
       await api.delete(`/email-templates/${id}`);
       await fetchData();
     } catch (error) {
       console.error("Failed to delete template:", error);
+      throw error;
+    }
+  };
+
+  const addAwarenessPage = async (page) => {
+    try {
+      const response = await api.post('/awareness-pages', {
+        title: page.title,
+        html_content: page.html_content
+      });
+      await fetchData();
+      return response.data;
+    } catch (error) {
+      console.error("Failed to add awareness page:", error);
+      throw error;
+    }
+  };
+
+  const editAwarenessPage = async (id, page) => {
+    try {
+      const response = await api.put(`/awareness-pages/${id}`, {
+        title: page.title,
+        html_content: page.html_content
+      });
+      await fetchData();
+      return response.data;
+    } catch (error) {
+      console.error("Failed to edit awareness page:", error);
+      throw error;
+    }
+  };
+
+  const deleteAwarenessPage = async (id) => {
+    try {
+      await api.delete(`/awareness-pages/${id}`);
+      await fetchData();
+    } catch (error) {
+      console.error("Failed to delete awareness page:", error);
       throw error;
     }
   };
@@ -564,6 +711,43 @@ export const AppProvider = ({ children }) => {
     addAuditLog("Schedule Campaign", `Scheduled campaign '${event.name}' for ${event.date}`);
   };
 
+  const deleteCampaignEvent = (eventId) => {
+    setCampaignEvents(prev => prev.filter(e => e.id !== eventId));
+    addAuditLog("Delete Scheduled Campaign", `Removed scheduled campaign event from calendar`);
+  };
+
+  const reportCampaignEmail = async (campaignId) => {
+    try {
+      await api.post(`/campaigns/employee/report-campaign/${campaignId}`);
+      await fetchData();
+    } catch (error) {
+      console.error("Failed to report campaign email:", error);
+      throw error;
+    }
+  };
+
+  const sendSupportMessage = async (messageText) => {
+    try {
+      const response = await api.post('/messages/send', { message_text: messageText });
+      await fetchData();
+      return response.data;
+    } catch (error) {
+      console.error("Failed to send support message:", error);
+      throw error;
+    }
+  };
+
+  const sendAdminReply = async (employeeId, messageText) => {
+    try {
+      const response = await api.post('/messages/admin/reply', { employee_id: employeeId, message_text: messageText });
+      await fetchData();
+      return response.data;
+    } catch (error) {
+      console.error("Failed to send admin reply:", error);
+      throw error;
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       isAuthenticated,
@@ -584,6 +768,8 @@ export const AppProvider = ({ children }) => {
       campaignEvents,
       departments,
       companies,
+      supportMessages,
+      adminThreads,
       login,
       employeeLogin,
       register,
@@ -603,7 +789,12 @@ export const AppProvider = ({ children }) => {
       updateCampaignStatus,
       addTemplate,
       editTemplate,
+      cloneTemplate,
       deleteTemplate,
+      awarenessPages,
+      addAwarenessPage,
+      editAwarenessPage,
+      deleteAwarenessPage,
       reportEmail,
       resolveReportedEmail,
       addQuiz,
@@ -614,9 +805,13 @@ export const AppProvider = ({ children }) => {
       updateProfile,
       savePermissions,
       addCampaignEvent,
+      deleteCampaignEvent,
       addAuditLog,
       markNotificationAsRead,
       markAllNotificationsAsRead,
+      reportCampaignEmail,
+      sendSupportMessage,
+      sendAdminReply,
       fetchData
     }}>
       {children}

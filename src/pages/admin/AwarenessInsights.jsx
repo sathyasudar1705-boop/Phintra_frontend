@@ -15,8 +15,8 @@ const DEPT_PERFORMANCE = [
 
 const LURE_DISTRIBUTION = [
   { name: 'Credential Harvesting', value: 45, color: 'var(--color-primary)' },
-  { name: 'Urgent Attachments', value: 30, color: 'var(--color-success)' },
-  { name: 'Authority Impersonation', value: 25, color: 'var(--color-warning)' }
+  { name: 'Urgent Attachments', value: 30, color: 'var(--color-cyan)' },
+  { name: 'Authority Impersonation', value: 25, color: 'var(--color-teal)' }
 ];
 
 const TRENDS = [
@@ -177,7 +177,7 @@ const AwarenessInsights = () => {
                 <Tooltip />
                 <Legend iconType="circle" style={{ fontSize: '12px' }} />
                 <Bar dataKey="completion" fill="var(--color-primary)" name="Completion Rate %" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="score" fill="var(--color-success)" name="Avg Quiz Score" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="score" fill="var(--color-teal)" name="Avg Quiz Score" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

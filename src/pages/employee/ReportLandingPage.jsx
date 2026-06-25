@@ -74,14 +74,29 @@ const ReportLandingPage = () => {
     );
   }
 
+  const getThemeColors = () => {
+    const theme = recipientInfo?.awareness_page?.theme || 'danger';
+    switch (theme) {
+      case 'teal':
+        return { primary: 'var(--color-teal)', bg: 'var(--color-teal-light)', border: '4px solid var(--color-teal)' };
+      case 'primary':
+        return { primary: 'var(--color-primary)', bg: 'var(--color-primary-light)', border: '4px solid var(--color-primary)' };
+      case 'danger':
+      default:
+        return { primary: 'var(--color-danger)', bg: 'var(--color-danger-light)', border: '4px solid var(--color-danger)' };
+    }
+  };
+
+  const themeColors = getThemeColors();
+
   return (
     <div style={{ maxWidth: '680px', margin: '40px auto', padding: '0 16px' }}>
       
       {/* Awareness Warning Header */}
-      <div className="saas-card" style={{ padding: '32px', textAlign: 'center', borderTop: '4px solid var(--color-danger)' }}>
+      <div className="saas-card" style={{ padding: '32px', textAlign: 'center', borderTop: themeColors.border }}>
         <div style={{
-          backgroundColor: 'var(--color-danger-light)',
-          color: 'var(--color-danger)',
+          backgroundColor: themeColors.bg,
+          color: themeColors.primary,
           width: '56px',
           height: '56px',
           borderRadius: '50%',
@@ -94,11 +109,34 @@ const ReportLandingPage = () => {
         </div>
         
         <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '-0.02em', marginBottom: '8px' }}>
-          Suspicious Email Detected
+          {recipientInfo?.awareness_page?.title || "Suspicious Email Detected"}
         </h1>
         <p style={{ fontSize: '14px', color: 'var(--text-light)', lineHeight: '1.6', maxWidth: '540px', margin: '0 auto 16px auto' }}>
-          This was a safe, educational security simulation conducted by Phintra. Don't worry—your credentials were not stolen and your device is completely secure. In a real scenario, clicking unexpected links could compromise the network.
+          {recipientInfo?.awareness_page?.message || "This was a safe, educational security simulation conducted by Phintra. Don't worry—your credentials were not stolen and your device is completely secure. In a real scenario, clicking unexpected links could compromise the network."}
         </p>
+
+        {/* Dynamic Tips Box */}
+        {recipientInfo?.awareness_page?.tips && recipientInfo.awareness_page.tips.length > 0 && (
+          <div style={{
+            backgroundColor: 'var(--bg-main)',
+            borderLeft: `4px solid ${themeColors.primary}`,
+            borderRadius: '6px',
+            padding: '16px',
+            textAlign: 'left',
+            marginTop: '20px',
+            marginBottom: '20px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <ShieldAlert size={16} style={{ color: themeColors.primary }} />
+              <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Security Red Flags & Tips</span>
+            </div>
+            <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {recipientInfo.awareness_page.tips.map((tip, idx) => (
+                <li key={idx}>{tip}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {error && (
           <div style={{
@@ -151,7 +189,7 @@ const ReportLandingPage = () => {
               icon={ShieldAlert}
               style={{ minWidth: '160px' }}
             >
-              Report Email
+              {recipientInfo?.awareness_page?.cta_text || "Report Email"}
             </Button>
             <Button
               onClick={() => handleAction('safe')}

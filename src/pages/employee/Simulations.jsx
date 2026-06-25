@@ -4,10 +4,22 @@ import { Eye, ShieldAlert, CheckCircle2, AlertOctagon, HelpCircle, Mail } from '
 import Button from '../../components/common/Button';
 
 const UserSimulations = () => {
-  const { simulations } = useAppContext();
+  const { simulations, reportCampaignEmail } = useAppContext();
 
   // Modal State
   const [selectedSim, setSelectedSim] = useState(null);
+  const [reportingId, setReportingId] = useState(null);
+
+  const handleReportSim = async (campaignId) => {
+    setReportingId(campaignId);
+    try {
+      await reportCampaignEmail(campaignId);
+    } catch (err) {
+      alert("Error reporting simulation email");
+    } finally {
+      setReportingId(null);
+    }
+  };
 
   return (
     <div>
@@ -40,33 +52,50 @@ const UserSimulations = () => {
               </tr>
             </thead>
             <tbody>
-              {simulations.map((sim) => (
-                <tr key={sim.id}>
-                  <td style={{ fontWeight: '600', color: 'var(--text-main)' }}>{sim.name}</td>
-                  <td style={{ color: 'var(--text-light)' }}>{sim.date}</td>
-                  <td>
-                    <span className={`badge badge-${sim.difficulty.toLowerCase()}`}>
-                      {sim.difficulty}
-                    </span>
-                  </td>
-                  <td>{sim.templateCategory || "Suspicious Link"}</td>
-                  <td>
-                    <span className={`badge badge-${sim.result.toLowerCase()}`}>
-                      {sim.result}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <Button 
-                      variant="secondary"
-                      size="sm"
-                      icon={Eye}
-                      onClick={() => setSelectedSim(sim)}
-                    >
-                      Inspect Drill
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+              {simulations.map((sim) => {
+                const isReportable = sim.interaction_status !== 'Reported' && sim.interaction_status !== 'Clicked';
+                return (
+                  <tr key={sim.id}>
+                    <td style={{ fontWeight: '600', color: 'var(--text-main)' }}>{sim.name}</td>
+                    <td style={{ color: 'var(--text-light)' }}>{sim.date}</td>
+                    <td>
+                      <span className={`badge badge-${sim.difficulty.toLowerCase()}`}>
+                        {sim.difficulty}
+                      </span>
+                    </td>
+                    <td>{sim.templateCategory || "Suspicious Link"}</td>
+                    <td>
+                      <span className={`badge badge-${sim.result.toLowerCase()}`}>
+                        {sim.result}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        {isReportable && (
+                          <Button 
+                            variant="primary"
+                            size="sm"
+                            icon={ShieldAlert}
+                            onClick={() => handleReportSim(sim.id)}
+                            loading={reportingId === sim.id}
+                            disabled={reportingId !== null}
+                          >
+                            Report
+                          </Button>
+                        )}
+                        <Button 
+                          variant="secondary"
+                          size="sm"
+                          icon={Eye}
+                          onClick={() => setSelectedSim(sim)}
+                        >
+                          Inspect Drill
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

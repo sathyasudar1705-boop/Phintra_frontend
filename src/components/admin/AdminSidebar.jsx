@@ -8,6 +8,8 @@ import {
   LogOut, ShieldCheck, X, Activity, Brain, FileText, Globe, 
   Calendar, History, Fingerprint, ShieldAlert, Sparkles
 } from 'lucide-react';
+import phintraLogo from '../../assets/phintra_logo.png';
+
 
 const AdminSidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
   const { currentUser, logout } = useAppContext();
@@ -44,6 +46,7 @@ const AdminSidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
       items: [
         { name: 'Users / Employees', path: '/admin/employees', icon: Users },
         { name: 'Departments', path: '/admin/departments', icon: Building2 },
+        { name: 'Support Messages', path: '/admin/messages', icon: Mail },
       ]
     },
     {
@@ -151,14 +154,14 @@ const AdminSidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
+          gap: '6px',
           marginBottom: '24px',
           paddingLeft: '8px'
         }}>
           <img 
-            src="https://i.pinimg.com/1200x/5c/07/7c/5c077c6c718fb0216266ccf723d011d3.jpg" 
+            src={phintraLogo} 
             alt="Phintra Logo" 
-            style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover' }}
+            style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'contain', background: 'transparent' }}
           />
           <div>
             <h1 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-main)', letterSpacing: '-0.02em', lineHeight: '1.2' }}>Phintra</h1>
@@ -181,23 +184,7 @@ const AdminSidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
           gap: '8px',
           flexShrink: 0
         }}>
-          {/* User Profile Card */}
-          <div style={{
-            padding: '12px',
-            borderRadius: '8px',
-            backgroundColor: 'var(--bg-main)',
-            border: '1px solid var(--border-color)',
-            fontSize: '12px',
-            color: 'var(--text-muted)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
-            marginBottom: '4px'
-          }}>
-            <strong style={{ color: 'var(--text-main)', fontSize: '13px' }}>{currentUser.name}</strong>
-            <span style={{ fontSize: '11px', color: 'var(--text-light)' }}>Role: {currentUser.role}</span>
-            <span style={{ fontSize: '11px', color: 'var(--text-light)' }}>Dept: {currentUser.department}</span>
-          </div>
+
           
           <button 
             onClick={handleLogout}
@@ -253,11 +240,11 @@ const AdminSidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
               marginBottom: '24px',
               paddingLeft: '8px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <img 
-                  src="https://i.pinimg.com/1200x/5c/07/7c/5c077c6c718fb0216266ccf723d011d3.jpg" 
+                  src={phintraLogo} 
                   alt="Phintra Logo" 
-                  style={{ width: '28px', height: '28px', borderRadius: '6px', objectFit: 'cover' }}
+                  style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'contain', background: 'transparent' }}
                 />
                 <h1 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-main)' }}>Phintra</h1>
               </div>
@@ -271,22 +258,6 @@ const AdminSidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
             </nav>
 
             <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{
-                padding: '10px 12px',
-                borderRadius: '8px',
-                backgroundColor: 'var(--bg-main)',
-                border: '1px solid var(--border-color)',
-                fontSize: '12px',
-                color: 'var(--text-muted)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '2px',
-                marginBottom: '4px'
-              }}>
-                <strong style={{ color: 'var(--text-main)', fontSize: '13px' }}>{currentUser.name}</strong>
-                <span style={{ fontSize: '11px', color: 'var(--text-light)' }}>Role: {currentUser.role}</span>
-                <span style={{ fontSize: '11px', color: 'var(--text-light)' }}>Dept: {currentUser.department}</span>
-              </div>
               <button 
                 onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
                 style={{

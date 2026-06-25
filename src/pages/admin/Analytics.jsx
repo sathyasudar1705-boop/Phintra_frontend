@@ -145,7 +145,7 @@ const AdminAnalytics = () => {
                 <YAxis unit="/100" tickLine={false} style={{ fontSize: '11px', fill: 'var(--text-light)' }} />
                 <Tooltip />
                 <Legend iconType="circle" style={{ fontSize: '11px' }} />
-                <Bar name="Active Risk Index" dataKey="risk" fill="var(--color-danger)" radius={[4, 4, 0, 0]} />
+                <Bar name="Active Risk Index" dataKey="risk" fill="var(--color-cyan)" radius={[4, 4, 0, 0]} />
                 <Bar name="Compliance Threshold" dataKey="benchmark" fill="var(--border-hover)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

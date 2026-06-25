@@ -30,6 +30,11 @@ export const EmployeeProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('employeeToken');
   const role = localStorage.getItem('employeeRole');
   const isAuthenticated = localStorage.getItem('employeeAuth') === 'true';
+  const queryToken = new URLSearchParams(window.location.search).get('token');
+
+  if (queryToken) {
+    return <div className="loading-screen" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--text-main)', backgroundColor: 'var(--bg-main)' }}>Loading secure session...</div>;
+  }
 
   if (!token || !isAuthenticated) {
     return <Navigate to="/user/login" replace />;

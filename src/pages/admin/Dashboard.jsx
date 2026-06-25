@@ -5,7 +5,7 @@ import {
   Users, Send, ShieldAlert, Award, ArrowUpRight, 
   ArrowDownRight, Mail, Plus, AlertOctagon, UserPlus, Eye,
   Brain, ShieldCheck, FileWarning, SearchX, ChevronLeft, 
-  ChevronRight, Building2, BookOpen
+  ChevronRight, Building2, BookOpen, RefreshCw
 } from 'lucide-react';
 import Button from '../../components/common/Button';
 import { 
@@ -30,6 +30,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Analytics API states
   const [stats, setStats] = useState({
@@ -69,24 +70,48 @@ const AdminDashboard = () => {
   
   const [wizardLoading, setWizardLoading] = useState(false);
   const [wizardError, setWizardError] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchData();
+      const [statsRes, deptsRes] = await Promise.all([
+        api.get('/analytics/dashboard'),
+        api.get('/analytics/departments')
+      ]);
+      setStats(statsRes.data);
+      setDeptRiskData(deptsRes.data);
+    } catch (e) {
+      console.error("Failed to refresh dashboard data:", e);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        const statsRes = await api.get('/analytics/dashboard');
-        setStats(statsRes.data);
-
-        const deptsRes = await api.get('/analytics/departments');
-        setDeptRiskData(deptsRes.data);
+        const promises = [
+          api.get('/analytics/dashboard'),
+          api.get('/analytics/departments')
+        ];
+        if (isInitialLoading) {
+          promises.push(fetchData());
+        }
+        const results = await Promise.all(promises);
+        setStats(results[0].data);
+        setDeptRiskData(results[1].data);
       } catch (e) {
         console.error("Failed to load dashboard analytics:", e);
       } finally {
         setIsLoading(false);
+        setIsInitialLoading(false);
       }
     };
     fetchDashboardData();
-  }, [campaigns, employees]);
+  }, [campaigns.length, employees.length]);
 
   // Set default wizard department ID when departments load
   useEffect(() => {
@@ -869,6 +894,15 @@ const AdminDashboard = () => {
           >
             Add Employee
           </Button>
+          <Button 
+            onClick={handleRefresh}
+            variant="secondary"
+            size="sm"
+            icon={RefreshCw}
+            loading={isRefreshing}
+          >
+            Refresh
+          </Button>
         </div>
       </div>
 
@@ -1111,8 +1145,8 @@ const AdminDashboard = () => {
                   <YAxis unit="%" tickLine={false} style={{ fontSize: '12px', fill: 'var(--text-light)' }} />
                   <Tooltip />
                   <Legend iconType="circle" style={{ fontSize: '12px' }} />
-                  <Line type="monotone" name="Click Rate" dataKey="clicks" stroke="var(--color-danger)" strokeWidth={2.5} activeDot={{ r: 6 }} />
-                  <Line type="monotone" name="Report Rate" dataKey="reports" stroke="var(--color-success)" strokeWidth={2.5} activeDot={{ r: 6 }} />
+                  <Line type="monotone" name="Click Rate" dataKey="clicks" stroke="var(--color-danger)" strokeWidth={3} activeDot={{ r: 6 }} />
+                  <Line type="monotone" name="Report Rate" dataKey="reports" stroke="var(--color-primary)" strokeWidth={3} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -1293,6 +1327,22 @@ const AdminDashboard = () => {
           .responsive-chart-grid {
             grid-template-columns: 1fr !important;
           }
+        }
+        .saas-card {
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        .saas-card:hover {
+          transform: translateY(-3px);
+          border-color: var(--color-primary) !important;
+          box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.05) !important;
+        }
+        .saas-table th {
+          background-color: var(--color-soft-bg) !important;
+          font-weight: 600 !important;
+          color: var(--color-heading-black) !important;
+        }
+        .saas-table tr:hover td {
+          background-color: rgba(37, 99, 235, 0.02) !important;
         }
       `}</style>
 

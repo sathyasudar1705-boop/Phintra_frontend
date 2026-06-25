@@ -46,30 +46,35 @@ import AwarenessInsights from '../pages/admin/AwarenessInsights';
 import ManagerDashboard from '../pages/admin/ManagerDashboard';
 
 // Employee / User Portal Pages
-import Home from '../pages/user/Home';
-import MyTraining from '../pages/user/MyTraining';
-import Simulations from '../pages/user/Simulations';
-import ReportEmail from '../pages/user/ReportEmail';
-import MyProgress from '../pages/user/MyProgress';
-import Certificates from '../pages/user/Certificates';
-import HelpCenter from '../pages/user/HelpCenter';
-import Profile from '../pages/user/Profile';
-import LearningFeed from '../pages/user/LearningFeed';
-import ScenarioTraining from '../pages/user/ScenarioTraining';
-import RedFlagTraining from '../pages/user/RedFlagTraining';
-import LoginAwareness from '../pages/user/LoginAwareness';
-import LearningCenter from '../pages/user/LearningCenter';
-import Challenges from '../pages/user/Challenges';
-import SecurityJourney from '../pages/user/SecurityJourney';
-import KnowledgeHub from '../pages/user/KnowledgeHub';
-import ReportLandingPage from '../pages/user/ReportLandingPage';
+import Home from '../pages/employee/Home';
+import MyTraining from '../pages/employee/MyTraining';
+import Simulations from '../pages/employee/Simulations';
+import ReportEmail from '../pages/employee/ReportEmail';
+import MyProgress from '../pages/employee/MyProgress';
+import Certificates from '../pages/employee/Certificates';
+import HelpCenter from '../pages/employee/HelpCenter';
+import Profile from '../pages/employee/Profile';
+import LearningFeed from '../pages/employee/LearningFeed';
+import ScenarioTraining from '../pages/employee/ScenarioTraining';
+import RedFlagTraining from '../pages/employee/RedFlagTraining';
+import LoginAwareness from '../pages/employee/LoginAwareness';
+import LearningCenter from '../pages/employee/LearningCenter';
+import Challenges from '../pages/employee/Challenges';
+import SecurityJourney from '../pages/employee/SecurityJourney';
+import KnowledgeHub from '../pages/employee/KnowledgeHub';
+import ReportLandingPage from '../pages/employee/ReportLandingPage';
+import UserLeaderboard from '../pages/employee/Leaderboard';
+import MessageWithAdmin from '../pages/employee/MessageWithAdmin';
+import SupportMessages from '../pages/admin/SupportMessages';
 
-// Conditionally renders the AI chatbot only on admin routes
+// Conditionally renders the AI chatbot only on admin routes, excluding login pages
 const AdminOnlyChatbot = () => {
   const location = useLocation();
-  if (!location.pathname.startsWith('/admin')) return null;
+  const path = location.pathname.toLowerCase();
+  if (!path.startsWith('/admin') || path.includes('login')) return null;
   return <FloatingAIChatbot />;
 };
+
 
 const AdminRedirect = () => {
   const { userRole } = useAppContext();
@@ -123,6 +128,7 @@ const AppRoutes = () => {
           <Route path="modules" element={<TrainingModules />} />
           <Route path="quizzes" element={<Quizzes />} />
           <Route path="reports" element={<ReportedEmails />} />
+          <Route path="messages" element={<SupportMessages />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="leaderboard" element={<Leaderboard />} />
           <Route path="settings" element={
@@ -164,6 +170,7 @@ const AppRoutes = () => {
           <Route path="simulations" element={<Simulations />} />
           <Route path="report" element={<ReportEmail />} />
           <Route path="progress" element={<MyProgress />} />
+          <Route path="leaderboard" element={<UserLeaderboard />} />
           <Route path="certificates" element={<Certificates />} />
           <Route path="help" element={<HelpCenter />} />
           <Route path="profile" element={<Profile />} />
@@ -175,6 +182,7 @@ const AppRoutes = () => {
           <Route path="challenges" element={<Challenges />} />
           <Route path="security-journey" element={<SecurityJourney />} />
           <Route path="knowledge-hub" element={<KnowledgeHub />} />
+          <Route path="messages" element={<MessageWithAdmin />} />
         </Route>
 
         {/* 4. Root Catch Redirect */}

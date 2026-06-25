@@ -2,18 +2,23 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
 import { useConfirm } from '../../hooks/useConfirm';
-import { Search, Filter, Plus, Eye, Edit3, Trash2, Calendar, Users, Percent, Send } from 'lucide-react';
+import { Search, Filter, Plus, Eye, Edit3, Trash2, Calendar, Users, Percent, Send, ChevronDown, MoreHorizontal, Target, Shield, CheckCircle2, Mail } from 'lucide-react';
 import Button from '../../components/common/Button';
 import api from '../../services/api';
 
 const AdminCampaigns = () => {
-  const { campaigns, deleteCampaign, emailTemplates, fetchData } = useAppContext();
+  const { campaigns, deleteCampaign, emailTemplates, fetchData, departments } = useAppContext();
   const navigate = useNavigate();
   const confirm = useConfirm();
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [activeTab, setActiveTab] = useState('active');
+  const [typeFilter, setTypeFilter] = useState('All');
+  const [deptFilter, setDeptFilter] = useState('All');
+  const [sortBy, setSortBy] = useState('date');
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   // Modal States
   const [selectedCampaign, setSelectedCampaign] = useState(null);
@@ -28,6 +33,51 @@ const AdminCampaigns = () => {
     if (!templateId) return "No Template";
     const template = emailTemplates?.find(t => t.id === templateId);
     return template ? template.title : "Unknown Template";
+  };
+
+  const getIconColor = (id) => {
+    let hash = 0;
+    if (id) {
+      for (let i = 0; i < id.length; i++) {
+        hash = id.charCodeAt(i) + ((hash << 5) - hash);
+      }
+    }
+    const colors = [
+      { bg: '#FFF7ED', color: '#EA580C' },
+      { bg: '#ECFDF5', color: '#059669' },
+      { bg: '#F0F9FF', color: '#0284C7' },
+      { bg: '#FDF2F8', color: '#DB2777' },
+      { bg: '#FAF5FF', color: '#7C3AED' },
+      { bg: '#FEFCE8', color: '#CA8A04' }
+    ];
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  };
+
+  const getBadgeDotColor = (status) => {
+    switch (status) {
+      case 'Active':
+      case 'Launched':
+        return 'var(--color-success)';
+      case 'Completed':
+        return 'var(--color-primary)';
+      case 'Draft':
+        return 'var(--color-warning)';
+      default:
+        return 'var(--text-light)';
+    }
+  };
+
+  const getCardIcon = (type) => {
+    const t = String(type).toLowerCase();
+    if (t.includes('spear')) return Mail;
+    if (t.includes('credential')) return Shield;
+    if (t.includes('mfa')) return Users;
+    return Target;
+  };
+
+  const handleToggleMenu = (id) => {
+    setOpenMenuId(prev => prev === id ? null : id);
   };
 
   const handleLaunch = async (camp) => {
@@ -52,13 +102,44 @@ const AdminCampaigns = () => {
   // Safe fallback if campaigns is undefined
   const campaignsList = campaigns || [];
 
+  // Counts for tabs
+  const activeCount = campaignsList.filter(c => c.status !== 'Archived').length;
+  const archivedCount = campaignsList.filter(c => c.status === 'Archived').length;
+
   // Filtered campaigns
   const filteredCampaigns = campaignsList.filter((camp) => {
     const titleVal = camp.title || camp.name || '';
     const matchesSearch = titleVal.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Tab filter
+    const matchesTab = activeTab === 'active' ? camp.status !== 'Archived' : camp.status === 'Archived';
+    
+    // Dropdown filters
     const matchesStatus = statusFilter === 'All' || camp.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesType = typeFilter === 'All' || camp.type === typeFilter;
+    const matchesDept = deptFilter === 'All' || camp.department === deptFilter;
+    
+    return matchesSearch && matchesTab && matchesStatus && matchesType && matchesDept;
   });
+
+  // Sorted campaigns
+  const sortedCampaigns = [...filteredCampaigns].sort((a, b) => {
+    if (sortBy === 'sent') {
+      return (b.sent || 0) - (a.sent || 0);
+    }
+    if (sortBy === 'success') {
+      return (b.success_rate || 0) - (a.success_rate || 0);
+    }
+    // Default: date (newest first)
+    const dateA = new Date(a.created_at || a.launch_date || 0);
+    const dateB = new Date(b.created_at || b.launch_date || 0);
+    return dateB - dateA;
+  });
+
+  const totalReported = analyticsData?.total_reported ?? analyticsData?.reported_employees?.length ?? 0;
+  const reportedRate = analyticsData?.reported_rate_percentage ?? 0;
+  const reportedEmployees = analyticsData?.reported_employees ?? [];
+  const clickedEmployees = analyticsData?.clicked_employees ?? [];
 
   const handleDelete = async (id) => {
     const confirmed = await confirm({
@@ -132,146 +213,424 @@ const AdminCampaigns = () => {
         </Button>
       </div>
 
-      {/* Toolbar (Search and Filters) */}
-      <div className="saas-card" style={{ padding: '16px', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* Top Tabs and Filter Bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '24px' }}>
+          <button 
+            onClick={() => setActiveTab('active')}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '12px 4px',
+              fontSize: '15px',
+              fontWeight: activeTab === 'active' ? '600' : '500',
+              color: activeTab === 'active' ? 'var(--color-primary)' : 'var(--text-light)',
+              borderBottom: activeTab === 'active' ? '2px solid var(--color-primary)' : '2px solid transparent',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <span>Active</span>
+            <span style={{ 
+              fontSize: '11px', 
+              backgroundColor: activeTab === 'active' ? 'var(--color-primary-light)' : 'var(--color-soft-bg)', 
+              color: activeTab === 'active' ? 'var(--color-primary)' : 'var(--text-light)',
+              padding: '2px 8px', 
+              borderRadius: '12px',
+              fontWeight: '600'
+            }}>
+              {activeCount}
+            </span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('archived')}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '12px 4px',
+              fontSize: '15px',
+              fontWeight: activeTab === 'archived' ? '600' : '500',
+              color: activeTab === 'archived' ? 'var(--color-primary)' : 'var(--text-light)',
+              borderBottom: activeTab === 'archived' ? '2px solid var(--color-primary)' : '2px solid transparent',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <span>Archived</span>
+            <span style={{ 
+              fontSize: '11px', 
+              backgroundColor: activeTab === 'archived' ? 'var(--color-primary-light)' : 'var(--color-soft-bg)', 
+              color: activeTab === 'archived' ? 'var(--color-primary)' : 'var(--text-light)',
+              padding: '2px 8px', 
+              borderRadius: '12px',
+              fontWeight: '600'
+            }}>
+              {archivedCount}
+            </span>
+          </button>
+        </div>
+
+        {/* Dropdown Filters on the Right */}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', paddingBottom: '8px' }}>
           
-          {/* Search bar */}
-          <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Search campaigns by title..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ paddingLeft: '40px' }}
-            />
-            <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)', display: 'flex' }}>
-              <Search size={16} />
+          {/* Triggered By (Campaign Type) */}
+          <div style={{ position: 'relative' }}>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              style={{
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                padding: '8px 32px 8px 12px',
+                fontSize: '13px',
+                fontWeight: '500',
+                color: 'var(--text-main)',
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                minWidth: '130px',
+                outline: 'none',
+                fontFamily: 'inherit'
+              }}
+            >
+              <option value="All">Triggered By: All</option>
+              <option value="Link Phishing">Link Phishing</option>
+              <option value="Spear Phishing">Spear Phishing</option>
+              <option value="Credential Harvesting">Credential Harvesting</option>
+              <option value="MFA Bypass">MFA Bypass</option>
+            </select>
+            <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-light)', display: 'flex' }}>
+              <ChevronDown size={14} />
             </div>
           </div>
 
-          {/* Filter dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Filter size={16} style={{ color: 'var(--text-light)' }} />
+          {/* Status */}
+          <div style={{ position: 'relative' }}>
             <select
-              className="form-control"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ minWidth: '160px', padding: '8px 12px' }}
+              style={{
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                padding: '8px 32px 8px 12px',
+                fontSize: '13px',
+                fontWeight: '500',
+                color: 'var(--text-main)',
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                minWidth: '120px',
+                outline: 'none',
+                fontFamily: 'inherit'
+              }}
             >
-              <option value="All">All Statuses</option>
+              <option value="All">Status: All</option>
               <option value="Active">Active</option>
               <option value="Launched">Launched</option>
               <option value="Completed">Completed</option>
               <option value="Draft">Draft</option>
             </select>
+            <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-light)', display: 'flex' }}>
+              <ChevronDown size={14} />
+            </div>
+          </div>
+
+          {/* Tags (Departments) */}
+          <div style={{ position: 'relative' }}>
+            <select
+              value={deptFilter}
+              onChange={(e) => setDeptFilter(e.target.value)}
+              style={{
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                padding: '8px 32px 8px 12px',
+                fontSize: '13px',
+                fontWeight: '500',
+                color: 'var(--text-main)',
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                minWidth: '120px',
+                outline: 'none',
+                fontFamily: 'inherit'
+              }}
+            >
+              <option value="All">Tags: All</option>
+              {departments?.map(dept => (
+                <option key={dept.id} value={dept.name}>{dept.name}</option>
+              ))}
+            </select>
+            <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-light)', display: 'flex' }}>
+              <ChevronDown size={14} />
+            </div>
+          </div>
+
+          {/* Sort By */}
+          <div style={{ position: 'relative' }}>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              style={{
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                padding: '8px 32px 8px 12px',
+                fontSize: '13px',
+                fontWeight: '500',
+                color: 'var(--text-main)',
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                minWidth: '160px',
+                outline: 'none',
+                fontFamily: 'inherit'
+              }}
+            >
+              <option value="date">Sort by: Created Date</option>
+              <option value="sent">Sort by: Sent Email</option>
+              <option value="success">Sort by: Success Rate</option>
+            </select>
+            <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-light)', display: 'flex' }}>
+              <ChevronDown size={14} />
+            </div>
           </div>
 
         </div>
       </div>
 
-      {/* Campaigns Listing Grid / Table */}
-      {filteredCampaigns.length === 0 ? (
+      {/* Search Input and Filter Reset bar */}
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Search campaigns by title..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ paddingLeft: '40px', height: '38px', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+          />
+          <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)', display: 'flex' }}>
+            <Search size={16} />
+          </div>
+        </div>
+        {(typeFilter !== 'All' || statusFilter !== 'All' || deptFilter !== 'All' || searchQuery !== '') && (
+          <button 
+            onClick={() => { setTypeFilter('All'); setStatusFilter('All'); setDeptFilter('All'); setSearchQuery(''); }}
+            style={{ fontSize: '13px', color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}
+          >
+            Clear Filters
+          </button>
+        )}
+      </div>
+
+      {/* Campaigns Listing Grid */}
+      {sortedCampaigns.length === 0 ? (
         <div className="saas-card" style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-light)' }}>
           <Percent size={48} style={{ color: 'var(--text-subtle)', marginBottom: '16px' }} />
           <h3>No campaigns found</h3>
           <p style={{ fontSize: '14px', marginTop: '4px' }}>Try modifying your search query or launch a new campaign.</p>
         </div>
       ) : (
-        <div className="saas-table-container">
-          <table className="saas-table">
-            <thead>
-              <tr>
-                <th>Campaign Name</th>
-                <th>Status</th>
-                <th>Target Scope</th>
-                <th>Success Rate</th>
-                <th>Created Date</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCampaigns.map((camp) => {
-                const titleVal = camp.title || camp.name || 'Simulation Drill';
-                const employeeCount = camp.employee_count !== undefined ? camp.employee_count : (camp.targetUsers || 0);
-                const successRateVal = camp.success_rate !== undefined ? camp.success_rate : (camp.successRate || 85);
-                const createdDateStr = camp.created_at ? new Date(camp.created_at).toLocaleDateString() : (camp.createdDate || 'N/A');
-                
-                return (
-                  <tr key={camp.id}>
-                    <td>
-                      <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>{titleVal}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-light)', marginTop: '2px', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {camp.description}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`badge badge-${camp.status.toLowerCase()}`}>
-                        {camp.status}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {sortedCampaigns.map((camp) => {
+            const titleVal = camp.title || camp.name || 'Simulation Drill';
+            const CardIcon = getCardIcon(camp.type);
+            const iconColor = getIconColor(camp.id);
+            
+            return (
+              <div key={camp.id} className="campaign-card animate-fade-in" style={{
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'stretch',
+                gap: '24px',
+                position: 'relative'
+              }}>
+                {/* Left Side: Icon, Title, Description, Tags */}
+                <div style={{ display: 'flex', gap: '16px', flex: 1, minWidth: '0' }}>
+                  {/* Colored Icon box */}
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '12px',
+                    backgroundColor: iconColor.bg,
+                    color: iconColor.color,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <CardIcon size={22} />
+                  </div>
+                  
+                  {/* Title & Desc & Tags */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '0' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-main)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {titleVal}
+                    </h3>
+                    <p style={{ fontSize: '13px', color: 'var(--text-light)', margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: '1.5' }}>
+                      {camp.description}
+                    </p>
+                    
+                    {/* Tags */}
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', backgroundColor: 'var(--color-soft-bg)', padding: '4px 10px', borderRadius: '20px' }}>
+                        {camp.type || 'Phishing Drill'}
                       </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                        <Users size={14} style={{ color: 'var(--text-light)' }} />
-                        <span>{employeeCount} Employees</span>
+                      <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', backgroundColor: 'var(--color-soft-bg)', padding: '4px 10px', borderRadius: '20px' }}>
+                        {camp.department || 'All Departments'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Side: Micro-stats, Status, ... & Large funnel metrics */}
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '20px', minWidth: '380px' }}>
+                  {/* Top Right: Micro-stats, Status, actions */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '16px' }}>
+                    {/* Micro-metrics */}
+                    <div style={{ display: 'flex', gap: '12px', color: 'var(--text-light)', fontSize: '13px', fontWeight: '600' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Opened Count">
+                        <Mail size={14} style={{ color: 'var(--text-subtle)' }} />
+                        <span>{String(camp.opened || 0).padStart(2, '0')}</span>
                       </div>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ fontWeight: '600' }}>{camp.status === 'Draft' ? '0%' : `${successRateVal}%`}</div>
-                        {camp.status !== 'Draft' && (
-                          <div style={{ width: '60px', height: '6px', backgroundColor: 'var(--border-color)', borderRadius: '3px', overflow: 'hidden' }}>
-                            <div style={{ width: `${successRateVal}%`, height: '100%', backgroundColor: 'var(--color-success)' }} />
-                          </div>
-                        )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Reported Count">
+                        <CheckCircle2 size={14} style={{ color: 'var(--text-subtle)' }} />
+                        <span>{String(camp.reported || 0).padStart(2, '0')}</span>
                       </div>
-                    </td>
-                    <td style={{ color: 'var(--text-light)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
-                        <Calendar size={14} />
-                        <span>{createdDateStr}</span>
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        {camp.status === 'Draft' && (
-                          <Button 
-                            onClick={() => handleLaunch(camp)}
-                            variant="success"
-                            size="sm"
-                            icon={Send}
-                            title="Send Immediately"
+                    </div>
+
+                    {/* Status Badge */}
+                    <span className={`badge badge-${camp.status.toLowerCase()}`} style={{
+                      textTransform: 'capitalize',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                      border: '1px solid transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: getBadgeDotColor(camp.status), display: 'inline-block' }} />
+                      {camp.status === 'Launched' ? 'Running' : camp.status}
+                    </span>
+
+                    {/* Action Menu (Three dot Dropdown) */}
+                    <div style={{ position: 'relative' }}>
+                      <button 
+                        onClick={() => handleToggleMenu(camp.id)}
+                        style={{
+                          background: 'none',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '6px',
+                          width: '32px',
+                          height: '32px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--text-light)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+
+                      {/* Dropdown Menu Popup */}
+                      {openMenuId === camp.id && (
+                        <>
+                          {/* Overlay to close menu on click outside */}
+                          <div 
+                            onClick={() => setOpenMenuId(null)}
+                            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }}
                           />
-                        )}
-                        <Button 
-                          onClick={() => handleViewDetails(camp)}
-                          variant="ghost"
-                          size="sm"
-                          icon={Eye}
-                          title="View Details"
-                        />
-                        <Button 
-                          onClick={() => handleOpenEdit(camp)}
-                          variant="ghost"
-                          size="sm"
-                          icon={Edit3}
-                          title="Edit Campaign"
-                        />
-                        <Button 
-                          onClick={() => handleDelete(camp.id)}
-                          variant="danger"
-                          size="sm"
-                          icon={Trash2}
-                          title="Delete Campaign"
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                          <div style={{
+                            position: 'absolute',
+                            right: 0,
+                            top: '38px',
+                            backgroundColor: 'var(--bg-card)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '8px',
+                            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
+                            zIndex: 1000,
+                            minWidth: '150px',
+                            padding: '6px 0'
+                          }}>
+                            {camp.status === 'Draft' && (
+                              <button 
+                                onClick={() => { setOpenMenuId(null); handleLaunch(camp); }}
+                                style={{ width: '100%', padding: '10px 16px', fontSize: '13px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-success)', fontFamily: 'inherit' }}
+                              >
+                                <Send size={14} /> Launch Drill
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => { setOpenMenuId(null); handleViewDetails(camp); }}
+                              style={{ width: '100%', padding: '10px 16px', fontSize: '13px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)', fontFamily: 'inherit' }}
+                            >
+                              <Eye size={14} /> View Details
+                            </button>
+                            <button 
+                              onClick={() => { setOpenMenuId(null); handleOpenEdit(camp); }}
+                              style={{ width: '100%', padding: '10px 16px', fontSize: '13px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)', fontFamily: 'inherit' }}
+                            >
+                              <Edit3 size={14} /> Edit Campaign
+                            </button>
+                            <button 
+                              onClick={() => { setOpenMenuId(null); handleDelete(camp.id); }}
+                              style={{ width: '100%', padding: '10px 16px', fontSize: '13px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-danger)', fontFamily: 'inherit' }}
+                            >
+                              <Trash2 size={14} /> Delete
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bottom Right: Aligned Metrics */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', borderLeft: '1px solid var(--border-color)', paddingLeft: '16px' }}>
+                    {/* Delivered */}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-main)' }}>{camp.sent || 0}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-main)', fontWeight: '600', marginTop: '2px' }}>Delivered</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-light)' }}>Total Sent</span>
+                    </div>
+                    {/* Opened */}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-main)' }}>{camp.opened || 0}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-main)', fontWeight: '600', marginTop: '2px' }}>Opened</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-light)' }}>Total Opened</span>
+                    </div>
+                    {/* Clicked */}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-danger)' }}>{camp.clicked || 0}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-main)', fontWeight: '600', marginTop: '2px' }}>Clicked</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-light)' }}>Failed Test</span>
+                    </div>
+                    {/* Reported */}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-teal)' }}>{camp.reported || 0}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-main)', fontWeight: '600', marginTop: '2px' }}>Reported</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-light)' }}>Successful</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -362,11 +721,11 @@ const AdminCampaigns = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
                           <span>Emails Reported (Simulation Success)</span>
                           <strong style={{ color: 'var(--color-teal)' }}>
-                            {analyticsData.total_reported} ({analyticsData.reported_rate_percentage}%)
+                            {totalReported} ({reportedRate}%)
                           </strong>
                         </div>
                         <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--border-color)', borderRadius: '3px' }}>
-                          <div style={{ width: `${analyticsData.reported_rate_percentage}%`, height: '100%', backgroundColor: 'var(--color-teal)' }} />
+                          <div style={{ width: `${reportedRate}%`, height: '100%', backgroundColor: 'var(--color-teal)' }} />
                         </div>
                       </div>
                     </div>
@@ -385,14 +744,14 @@ const AdminCampaigns = () => {
                   {/* Clicked Employees */}
                   <div style={{ marginBottom: '16px' }}>
                     <h5 style={{ fontSize: '12px', fontWeight: '700', color: 'var(--color-danger)', marginBottom: '8px' }}>
-                      Employees Who Clicked Link ({analyticsData.clicked_employees.length})
+                      Employees Who Clicked Link ({clickedEmployees.length})
                     </h5>
-                    {analyticsData.clicked_employees.length === 0 ? (
+                    {clickedEmployees.length === 0 ? (
                       <p style={{ fontSize: '12px', color: 'var(--text-light)', fontStyle: 'italic' }}>No employee clicked the simulation link.</p>
                     ) : (
                       <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '8px' }}>
-                        {analyticsData.clicked_employees.map((emp, i) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0', borderBottom: i < analyticsData.clicked_employees.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                        {clickedEmployees.map((emp, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0', borderBottom: i < clickedEmployees.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
                             <span><strong>{emp.name}</strong> ({emp.email})</span>
                             <span style={{ color: 'var(--text-light)', fontSize: '11px' }}>{new Date(emp.clicked_at).toLocaleString()}</span>
                           </div>
@@ -404,14 +763,14 @@ const AdminCampaigns = () => {
                   {/* Reported Employees */}
                   <div>
                     <h5 style={{ fontSize: '12px', fontWeight: '700', color: 'var(--color-teal)', marginBottom: '8px' }}>
-                      Employees Who Reported Email ({analyticsData.reported_employees.length})
+                      Employees Who Reported Email ({reportedEmployees.length})
                     </h5>
-                    {analyticsData.reported_employees.length === 0 ? (
+                    {reportedEmployees.length === 0 ? (
                       <p style={{ fontSize: '12px', color: 'var(--text-light)', fontStyle: 'italic' }}>No employee reported the simulation email.</p>
                     ) : (
                       <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '8px' }}>
-                        {analyticsData.reported_employees.map((emp, i) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0', borderBottom: i < analyticsData.reported_employees.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                        {reportedEmployees.map((emp, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0', borderBottom: i < reportedEmployees.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
                             <span><strong>{emp.name}</strong> ({emp.email})</span>
                             <span style={{ color: 'var(--text-light)', fontSize: '11px' }}>{new Date(emp.reported_at).toLocaleString()}</span>
                           </div>

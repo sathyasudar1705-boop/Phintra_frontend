@@ -58,7 +58,10 @@ api.interceptors.response.use(
     } else if (!error.response) {
       // Backend is offline / unreachable (e.g. ERR_CONNECTION_REFUSED or Network Error)
       console.error("API connection error. The backend server appears to be offline or unreachable.", error);
-      error.message = "The Phintra backend server is offline or unreachable. Please verify that the backend is running on port 8001.";
+      const baseUrl = api.defaults.baseURL || '';
+      const portMatch = baseUrl.match(/:(\d+)/);
+      const port = portMatch ? portMatch[1] : '8000';
+      error.message = `The Phintra backend server is offline or unreachable. Please verify that the backend is running on port ${port}.`;
     }
     return Promise.reject(error);
   }

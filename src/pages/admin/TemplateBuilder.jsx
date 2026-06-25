@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from '../../hooks/useToast';
 import { useAppContext } from '../../context/AppContext';
 import { Mail, Plus, AlertCircle, Link2, Eye, ShieldAlert, ArrowLeft } from 'lucide-react';
@@ -6,16 +7,26 @@ import Button from '../../components/common/Button';
 
 const TemplateBuilder = () => {
   const toast = useToast();
-  const { addTemplate } = useAppContext();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { addTemplate, editTemplate } = useAppContext();
+
+  // Route State
+  const state = location.state || {};
+  const { template, mode } = state;
+
+  // Detect initial format
+  const isPlainInit = template && template.body_text && (!template.body_html || template.body_html === '');
 
   // Form Fields
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('Credential Theft');
-  const [difficulty, setDifficulty] = useState('Medium');
-  const [senderName, setSenderName] = useState('IT Desk Support');
-  const [senderEmail, setSenderEmail] = useState('security-update@phintra-auth.com');
-  const [subject, setSubject] = useState('[ACTION REQUIRED] Confirm Security Credentials');
-  const [body, setBody] = useState(`Dear Team member,
+  const [name, setName] = useState(template ? (mode === 'clone' ? `Copy of ${template.name}` : template.name) : '');
+  const [category, setCategory] = useState(template?.category || 'Credential Theft');
+  const [difficulty, setDifficulty] = useState(template?.difficulty || 'Medium');
+  const [senderName, setSenderName] = useState(template?.sender_name || 'IT Desk Support');
+  const [senderEmail, setSenderEmail] = useState(template?.sender_email || 'security-update@phintra-auth.com');
+  const [subject, setSubject] = useState(template?.subject || '[ACTION REQUIRED] Confirm Security Credentials');
+  const [bodyFormat, setBodyFormat] = useState(isPlainInit ? 'Plain Text' : 'HTML');
+  const [body, setBody] = useState(template ? (isPlainInit ? template.body_text : (template.body_html || template.body)) : `Dear Team member,
 
 We have detected suspicious login traffic on your workstation network nodes. To prevent access blocks, you are requested to verify your authentication token immediately.
 
@@ -70,7 +81,7 @@ Information Security Department`);
     showToast('Phishing anchor link successfully injected into editor cursor.');
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -79,27 +90,55 @@ Information Security Department`);
       return;
     }
 
-    // Call state helper context
-    addTemplate({
-      name,
-      category,
-      difficulty,
-      subject,
-      preview: body.slice(0, 100) + '...',
-      body,
-      senderName,
-      senderEmail
-    });
+    try {
+      const templateData = {
+        name,
+        category,
+        difficulty,
+        subject,
+        body: body,
+        body_html: bodyFormat === 'HTML' ? body : '',
+        body_text: bodyFormat === 'Plain Text' ? body : '',
+        sender_name: senderName,
+        sender_email: senderEmail
+      };
 
-    showToast(`Template "${name}" has been successfully added to your database!`);
-    
-    // Reset Form except standard values to help continuous authoring
-    setName('');
+      if (mode === 'edit' && template?.id) {
+        await editTemplate(template.id, templateData);
+        showToast(`Template "${name}" has been successfully updated!`);
+      } else {
+        await addTemplate(templateData);
+        showToast(`Template "${name}" has been successfully added to your database!`);
+      }
+
+      setTimeout(() => {
+        navigate('/admin/templates');
+      }, 1500);
+    } catch (err) {
+      setErrorMsg(err.response?.data?.detail || 'Failed to save template. Please check the spoof email domain requirements.');
+    }
   };
 
   const renderPreviewBody = (text) => {
     if (!text) return <span style={{ color: 'var(--text-subtle)', fontStyle: 'italic' }}>Your email content will render here...</span>;
     
+    if (bodyFormat === 'HTML') {
+      let previewHtml = text;
+      previewHtml = previewHtml.replace(/\{\{TrackingLink\}\}/g, '#');
+      previewHtml = previewHtml.replace(/\{\{EmployeeName\}\}/g, 'John Doe');
+      previewHtml = previewHtml.replace(/\{\{Company\}\}/g, 'Phintra Test Lab');
+      previewHtml = previewHtml.replace(/\{\{employee_name\}\}/g, 'John Doe');
+      previewHtml = previewHtml.replace(/\{\{company_name\}\}/g, 'Phintra Test Lab');
+      previewHtml = previewHtml.replace(/\{\{login_link\}\}/g, '#');
+
+      return (
+        <div 
+          dangerouslySetInnerHTML={{ __html: previewHtml }} 
+          style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '14px', color: '#000000', minHeight: '140px' }} 
+        />
+      );
+    }
+
     const parts = [];
     let lastIndex = 0;
     const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
@@ -176,9 +215,17 @@ Information Security Department`);
 
       {/* Header */}
       <div className="saas-header">
-        <div className="saas-title-group">
-          <h1>Email Template Builder</h1>
-          <p>Design and customize highly detailed email templates to construct complex corporate simulations.</p>
+        <div className="saas-title-group" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button 
+            onClick={() => navigate('/admin/templates')}
+            style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', color: 'var(--text-light)', cursor: 'pointer', gap: '4px', fontSize: '14px', padding: '8px 0' }}
+          >
+            <ArrowLeft size={16} /> Back to Templates
+          </button>
+          <div>
+            <h1>{mode === 'edit' ? 'Edit Email Template' : 'Email Template Builder'}</h1>
+            <p>Design and customize highly detailed email templates with dynamic tokens to construct complex corporate simulations.</p>
+          </div>
         </div>
       </div>
 
@@ -211,7 +258,7 @@ Information Security Department`);
 
           <form onSubmit={handleSave}>
             <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px' }}>Template Internal Name</label>
+              <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px' }}>Template Name</label>
               <input
                 type="text"
                 className="form-control"
@@ -296,27 +343,91 @@ Information Security Department`);
 
             <div className="form-group" style={{ marginBottom: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label className="form-label" style={{ fontWeight: '500', fontSize: '13px', margin: 0 }}>Email Content Markup</label>
-                <button
-                  type="button"
-                  onClick={() => setShowLinkModal(true)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    fontSize: '12px',
-                    color: 'var(--color-primary)',
-                    backgroundColor: 'var(--color-primary-light)',
-                    border: '1px solid #bfdbfe',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  <Link2 size={13} />
-                  Insert Link Anchor
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label className="form-label" style={{ fontWeight: '500', fontSize: '13px', margin: 0 }}>Email Content</label>
+                  <select
+                    value={bodyFormat}
+                    onChange={(e) => {
+                      setBodyFormat(e.target.value);
+                      showToast(`Format switched to ${e.target.value}`);
+                    }}
+                    style={{
+                      fontSize: '11px',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-main)',
+                      color: 'var(--text-main)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="HTML">HTML Format</option>
+                    <option value="Plain Text">Plain Text Format</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const textToInsert = bodyFormat === 'HTML' 
+                        ? '<a href="{{TrackingLink}}">Open Secure Link</a>' 
+                        : '{{TrackingLink}}';
+                      
+                      const textarea = document.getElementById('templateBodyTextarea');
+                      if (!textarea) {
+                        setBody(prev => prev + ' ' + textToInsert);
+                      } else {
+                        const start = textarea.selectionStart;
+                        const end = textarea.selectionEnd;
+                        const text = textarea.value;
+                        const before = text.substring(0, start);
+                        const after = text.substring(end, text.length);
+                        setBody(before + textToInsert + after);
+                        setTimeout(() => {
+                          textarea.focus();
+                          textarea.selectionStart = textarea.selectionEnd = start + textToInsert.length;
+                        }, 0);
+                      }
+                      showToast('Tracking link token inserted successfully!');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '12px',
+                      color: 'var(--color-teal)',
+                      backgroundColor: 'rgba(20, 184, 166, 0.1)',
+                      border: '1px solid rgba(20, 184, 166, 0.2)',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontWeight: '600'
+                    }}
+                  >
+                    <Link2 size={13} />
+                    Insert Tracking Link
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowLinkModal(true)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '12px',
+                      color: 'var(--color-primary)',
+                      backgroundColor: 'var(--color-primary-light)',
+                      border: '1px solid #bfdbfe',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontWeight: '600'
+                    }}
+                  >
+                    <Link2 size={13} />
+                    Insert Link Anchor
+                  </button>
+                </div>
               </div>
               <textarea
                 id="templateBodyTextarea"
@@ -330,10 +441,16 @@ Information Security Department`);
             </div>
 
             <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-              <Button variant="primary" type="submit" style={{ flex: 1 }}>Save Blueprint to Database</Button>
+              <Button variant="outline" type="button" onClick={() => navigate('/admin/templates')} style={{ flex: 1 }}>
+                Cancel
+              </Button>
+              <Button variant="primary" type="submit" style={{ flex: 2 }}>
+                {mode === 'edit' ? 'Update Template in Database' : 'Save Blueprint to Database'}
+              </Button>
             </div>
           </form>
         </div>
+
 
         {/* Right Column: Outlook Simulated Client Preview */}
         <div className="saas-card" style={{ padding: '24px', borderTop: '4px solid var(--color-primary)' }}>

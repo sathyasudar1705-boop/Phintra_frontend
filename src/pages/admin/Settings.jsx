@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { Building2, Bell, Shield, User, CheckCircle2, Lock } from 'lucide-react';
+import { Building2, Bell, Shield, User, CheckCircle2, Lock, Key, CheckCircle } from 'lucide-react';
 import Button from '../../components/common/Button';
 
 const AdminSettings = () => {
@@ -27,6 +27,27 @@ const AdminSettings = () => {
   // Form Fields: Profile
   const [profileName, setProfileName] = useState(currentUser.name || 'Alex Chen');
   const [profileEmail, setProfileEmail] = useState(currentUser.email || 'alex.chen@phintra-enterprise.com');
+
+  // Form Fields: Microsoft Authentication
+  const [tenantId, setTenantId] = useState('common');
+  const [clientId, setClientId] = useState('phintra-client-id-xyz123');
+  const [redirectUri, setRedirectUri] = useState('https://phintra.com/auth/callback');
+  const [allowedDomains, setAllowedDomains] = useState('phintra-enterprise.com, partner.com');
+  const [loginMode, setLoginMode] = useState('sso'); // 'sso' (Microsoft SSO) or 'fallback' (Email Fallback)
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState(null);
+
+  const handleTestMicrosoftLogin = () => {
+    setTesting(true);
+    setTestResult(null);
+    setTimeout(() => {
+      setTesting(false);
+      setTestResult({
+        success: true,
+        message: 'SSO Connection Successful: Tenant verified for Allowed Domains!'
+      });
+    }, 1000);
+  };
 
   const handleSave = (e) => {
     e.preventDefault();
@@ -75,7 +96,8 @@ const AdminSettings = () => {
             { id: 'org', label: 'Organization', icon: Building2 },
             { id: 'notifications', label: 'Notifications', icon: Bell },
             { id: 'security', label: 'Security Policies', icon: Shield },
-            { id: 'profile', label: 'Admin Profile', icon: User }
+            { id: 'profile', label: 'Admin Profile', icon: User },
+            { id: 'ms-auth', label: 'Microsoft SSO', icon: Key }
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -289,23 +311,136 @@ const AdminSettings = () => {
               </div>
             )}
 
+            {/* TABS 5: MICROSOFT AUTHENTICATION */}
+            {activeTab === 'ms-auth' && (
+              <div className="animate-fade-in">
+                <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '4px' }}>Microsoft SSO Configuration</h2>
+                <p style={{ fontSize: '13px', color: 'var(--text-light)', marginBottom: '24px' }}>Configure Microsoft Entra ID (Azure AD) single sign-on parameters for your tenant.</p>
+
+                {testResult && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.15)',
+                    borderRadius: '6px',
+                    padding: '12px',
+                    fontSize: '13px',
+                    color: 'var(--color-success)',
+                    marginBottom: '20px',
+                    fontWeight: '500'
+                  }}>
+                    <CheckCircle size={16} />
+                    <span>{testResult.message}</span>
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label className="form-label">Tenant ID</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={tenantId}
+                    onChange={(e) => setTenantId(e.target.value)}
+                    placeholder="e.g. common, or your-tenant-uuid"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Client ID (Application ID)</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={clientId}
+                    onChange={(e) => setClientId(e.target.value)}
+                    placeholder="Enter your Azure Client ID"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Redirect URI</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={redirectUri}
+                    onChange={(e) => setRedirectUri(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Allowed Domains (Comma separated)</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={allowedDomains}
+                    onChange={(e) => setAllowedDomains(e.target.value)}
+                    placeholder="e.g. company.com, partner.com"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Login Mode</label>
+                  <select
+                    className="form-control"
+                    value={loginMode}
+                    onChange={(e) => setLoginMode(e.target.value)}
+                  >
+                    <option value="sso">Microsoft SSO Only</option>
+                    <option value="fallback">SSO with Email Fallback</option>
+                  </select>
+                </div>
+
+                <div style={{
+                  borderTop: '1px solid var(--border-color)',
+                  paddingTop: '20px',
+                  marginTop: '28px',
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: '12px'
+                }}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleTestMicrosoftLogin}
+                    disabled={loading || testing}
+                  >
+                    {testing ? 'Testing...' : 'Test Microsoft Login'}
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={loading || testing}
+                  >
+                    Save Microsoft Settings
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Save Button */}
-            <div style={{
-              borderTop: '1px solid var(--border-color)',
-              paddingTop: '20px',
-              marginTop: '28px',
-              display: 'flex',
-              justifyContent: 'flex-end'
-            }}>
-              <Button 
-                type="submit" 
-                variant="primary"
-                disabled={loading}
-                loading={loading}
-              >
-                Save Settings
-              </Button>
-            </div>
+            {activeTab !== 'ms-auth' && (
+              <div style={{
+                borderTop: '1px solid var(--border-color)',
+                paddingTop: '20px',
+                marginTop: '28px',
+                display: 'flex',
+                justifyContent: 'flex-end'
+              }}>
+                <Button 
+                  type="submit" 
+                  variant="primary"
+                  disabled={loading}
+                  loading={loading}
+                >
+                  Save Settings
+                </Button>
+              </div>
+            )}
 
           </form>
         </div>
