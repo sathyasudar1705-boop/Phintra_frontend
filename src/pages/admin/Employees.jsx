@@ -293,9 +293,9 @@ const AdminEmployees = () => {
       ) : (
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border-color)',
-          borderRadius: '16px', overflow: 'hidden'
+          borderRadius: '16px', overflowX: 'auto', WebkitOverflowScrolling: 'touch'
         }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
             <thead>
               <tr style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border-color)' }}>
                 {['Employee', 'Department', 'Email', 'Risk Level', 'Status', 'Actions'].map((h, i) => (

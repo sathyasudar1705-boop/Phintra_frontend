@@ -93,7 +93,8 @@ const Login = () => {
     <div className="auth-container" style={{
       display: 'flex',
       minHeight: '100vh',
-      width: '100vw',
+      width: '100%',
+      maxWidth: '100%',
       fontFamily: "'Inter', 'Outfit', -apple-system, sans-serif",
       background: '#FFFFFF',
     }}>

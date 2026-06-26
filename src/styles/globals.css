@@ -69,7 +69,10 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html {
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
   scroll-behavior: smooth;
   height: 100%;
 }
@@ -85,9 +88,18 @@ body {
 }
 
 #root {
+  max-width: 100%;
+  overflow-x: hidden;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+.container,
+.page-wrapper,
+.main-content {
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Premium Scrollbar */
