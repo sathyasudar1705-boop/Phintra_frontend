@@ -8,6 +8,9 @@ import {
   Award, Clock, ArrowRight, Users, Lock
 } from 'lucide-react';
 import celebrationImg from '../../assets/celebration.png';
+import shieldLowImg from '../../assets/shield_low.png';
+import shieldMidImg from '../../assets/shield_mid.png';
+import shieldHighImg from '../../assets/shield_high.png';
 
 /* ─── tiny animated counter ─── */
 const Counter = ({ value, suffix = '' }) => {
@@ -133,16 +136,22 @@ const UserHome = () => {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
-  const isLow = securityScore < 60;
-  const scoreColor = securityScore >= 80 ? '#10b981' : securityScore >= 60 ? '#f59e0b' : '#ef4444';
-  const textColor = securityScore >= 80 ? '#14532d' : securityScore >= 60 ? '#78350f' : '#881337';
-  const cardBg = securityScore >= 80 
+  const isLow = securityScore < 34;
+  const scoreColor = securityScore >= 68 ? '#10b981' : securityScore >= 34 ? '#f59e0b' : '#ef4444';
+  const textColor = securityScore >= 68 ? '#14532d' : securityScore >= 34 ? '#78350f' : '#881337';
+  const cardBg = securityScore >= 68 
     ? 'linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%)' 
-    : securityScore >= 60 
+    : securityScore >= 34 
       ? 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)' 
       : 'linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%)';
-  const cardBorder = securityScore >= 80 ? '#bbf7d0' : securityScore >= 60 ? '#fde68a' : '#fecdd3';
-  const statusLabel = securityScore >= 80 ? 'HIGH' : securityScore >= 60 ? 'MEDIUM' : 'LOW';
+  const cardBorder = securityScore >= 68 ? '#bbf7d0' : securityScore >= 34 ? '#fde68a' : '#fecdd3';
+  const statusLabel = securityScore >= 68 ? 'HIGH' : securityScore >= 34 ? 'MEDIUM' : 'LOW';
+
+  const standingImg = securityScore < 34 
+    ? shieldLowImg 
+    : securityScore < 68 
+      ? shieldMidImg 
+      : shieldHighImg;
 
   return (
     <div style={{ fontFamily: "'Inter', 'Outfit', sans-serif", maxWidth: '1200px', margin: '0 auto' }}>
@@ -490,45 +499,69 @@ const UserHome = () => {
               </span>
             </div>
 
-            {/* Circular gauge */}
-            <div style={{ position: 'relative', width: 140, height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
-              {/* Background glow blob */}
-              <div style={{
-                position: 'absolute',
-                width: '100px', height: '100px', borderRadius: '50%',
-                background: scoreColor, filter: 'blur(32px)', opacity: 0.08,
-                pointerEvents: 'none'
-              }} />
+            {/* Gauge & Avatar Row */}
+            <div style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'center', gap: '20px', zIndex: 2, flexWrap: 'wrap' }}>
+              {/* Circular gauge */}
+              <div style={{ position: 'relative', width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {/* Background glow blob */}
+                <div style={{
+                  position: 'absolute',
+                  width: '80px', height: '80px', borderRadius: '50%',
+                  background: scoreColor, filter: 'blur(28px)', opacity: 0.08,
+                  pointerEvents: 'none'
+                }} />
 
-              <svg width="140" height="140" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="70" cy="70" r="55" fill="none" stroke="rgba(0, 0, 0, 0.03)" strokeWidth="8" />
-                <motion.circle
-                  cx="70" cy="70" r="55" fill="none"
-                  stroke={scoreColor}
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * 55}`}
-                  initial={{ strokeDashoffset: 2 * Math.PI * 55 }}
-                  animate={{ strokeDashoffset: 2 * Math.PI * 55 * (1 - securityScore / 100) }}
-                  transition={{ duration: 1.2, delay: 0.4, ease: 'easeOut' }}
-                  style={{ filter: `drop-shadow(0 0 4px ${scoreColor}80)` }}
-                />
-              </svg>
-              <div style={{
-                position: 'absolute',
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center'
-              }}>
-                <span style={{
-                  fontSize: '34px',
-                  fontWeight: '950',
-                  color: textColor,
-                  lineHeight: 1,
-                  letterSpacing: '-0.02em',
+                <svg width="120" height="120" style={{ transform: 'rotate(-90deg)' }}>
+                  <circle cx="60" cy="60" r="46" fill="none" stroke="rgba(0, 0, 0, 0.03)" strokeWidth="7" />
+                  <motion.circle
+                    cx="60" cy="60" r="46" fill="none"
+                    stroke={scoreColor}
+                    strokeWidth="7"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 46}`}
+                    initial={{ strokeDashoffset: 2 * Math.PI * 46 }}
+                    animate={{ strokeDashoffset: 2 * Math.PI * 46 * (1 - securityScore / 100) }}
+                    transition={{ duration: 1.2, delay: 0.4, ease: 'easeOut' }}
+                    style={{ filter: `drop-shadow(0 0 4px ${scoreColor}80)` }}
+                  />
+                </svg>
+                <div style={{
+                  position: 'absolute',
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center'
                 }}>
-                  {securityScore}
-                </span>
-                <span style={{ fontSize: '10px', color: textColor, opacity: 0.7, fontWeight: '800', marginTop: '2px', letterSpacing: '0.05em' }}>/ 100 PTS</span>
+                  <span style={{
+                    fontSize: '28px',
+                    fontWeight: '950',
+                    color: textColor,
+                    lineHeight: 1,
+                    letterSpacing: '-0.02em',
+                  }}>
+                    {securityScore}
+                  </span>
+                  <span style={{ fontSize: '9px', color: textColor, opacity: 0.7, fontWeight: '800', marginTop: '2px', letterSpacing: '0.05em' }}>/ 100 PTS</span>
+                </div>
+              </div>
+
+              {/* Avatar Image representing status */}
+              <div style={{
+                width: '110px',
+                height: '110px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative'
+              }}>
+                <img
+                  src={standingImg}
+                  alt={`Mascot for status ${statusLabel}`}
+                  style={{
+                    maxHeight: '100%',
+                    maxWidth: '100%',
+                    objectFit: 'contain',
+                    filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.12))'
+                  }}
+                />
               </div>
             </div>
 
