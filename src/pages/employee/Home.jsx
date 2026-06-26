@@ -155,6 +155,39 @@ const UserHome = () => {
 
   return (
     <div style={{ fontFamily: "'Inter', 'Outfit', sans-serif", maxWidth: '1200px', margin: '0 auto' }}>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes shieldFloat {
+          0% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+          100% { transform: translateY(0); }
+        }
+        .shield-standing-mascot-wrapper {
+          position: absolute;
+          right: -18px;
+          bottom: -22px;
+          width: 170px;
+          height: 195px;
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+          z-index: 10;
+          pointer-events: none;
+          animation: shieldFloat 3.2s infinite ease-in-out;
+        }
+        @media (max-width: 768px) {
+          .shield-standing-mascot-wrapper {
+            width: 135px;
+            height: 155px;
+            right: -10px;
+            bottom: -15px;
+          }
+        }
+        @media (max-width: 480px) {
+          .shield-standing-mascot-wrapper {
+            display: none !important;
+          }
+        }
+      ` }} />
 
       {/* ── Hero Banner ── */}
       <motion.div
@@ -462,14 +495,15 @@ const UserHome = () => {
               padding: '28px',
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
-              gap: '20px',
+              alignItems: 'flex-start',
+              gap: '18px',
               position: 'relative',
-              overflow: 'hidden',
+              overflow: 'visible',
               boxShadow: `0 15px 35px -10px ${scoreColor}15, 0 4px 20px rgba(0,0,0,0.02)`,
               transition: 'all 0.3s ease',
               width: '100%',
-              alignSelf: 'stretch'
+              alignSelf: 'stretch',
+              zIndex: 5
             }}
           >
             {/* Cyber decorative grid (subtle light grid) */}
@@ -478,14 +512,15 @@ const UserHome = () => {
               backgroundImage: 'radial-gradient(rgba(0,0,0,0.02) 1px, transparent 1px)',
               backgroundSize: '16px 16px',
               opacity: 0.8,
-              pointerEvents: 'none'
+              pointerEvents: 'none',
+              borderRadius: '24px'
             }} />
             <div style={{
               position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
               background: `linear-gradient(90deg, transparent, ${scoreColor}, transparent)`
             }} />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', zIndex: 2 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', zIndex: 2, paddingRight: '80px' }}>
               <h3 style={{ fontSize: '13px', fontWeight: '900', color: textColor, opacity: 0.8, letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
                 Shield Standing
               </h3>
@@ -499,93 +534,83 @@ const UserHome = () => {
               </span>
             </div>
 
-            {/* Gauge & Avatar Row */}
-            <div style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'center', gap: '20px', zIndex: 2, flexWrap: 'wrap' }}>
-              {/* Circular gauge */}
-              <div style={{ position: 'relative', width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {/* Background glow blob */}
-                <div style={{
-                  position: 'absolute',
-                  width: '80px', height: '80px', borderRadius: '50%',
-                  background: scoreColor, filter: 'blur(28px)', opacity: 0.08,
-                  pointerEvents: 'none'
-                }} />
-
-                <svg width="120" height="120" style={{ transform: 'rotate(-90deg)' }}>
-                  <circle cx="60" cy="60" r="46" fill="none" stroke="rgba(0, 0, 0, 0.03)" strokeWidth="7" />
-                  <motion.circle
-                    cx="60" cy="60" r="46" fill="none"
-                    stroke={scoreColor}
-                    strokeWidth="7"
-                    strokeLinecap="round"
-                    strokeDasharray={`${2 * Math.PI * 46}`}
-                    initial={{ strokeDashoffset: 2 * Math.PI * 46 }}
-                    animate={{ strokeDashoffset: 2 * Math.PI * 46 * (1 - securityScore / 100) }}
-                    transition={{ duration: 1.2, delay: 0.4, ease: 'easeOut' }}
-                    style={{ filter: `drop-shadow(0 0 4px ${scoreColor}80)` }}
-                  />
-                </svg>
-                <div style={{
-                  position: 'absolute',
-                  display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center'
-                }}>
-                  <span style={{
-                    fontSize: '28px',
-                    fontWeight: '950',
-                    color: textColor,
-                    lineHeight: 1,
-                    letterSpacing: '-0.02em',
-                  }}>
-                    {securityScore}
-                  </span>
-                  <span style={{ fontSize: '9px', color: textColor, opacity: 0.7, fontWeight: '800', marginTop: '2px', letterSpacing: '0.05em' }}>/ 100 PTS</span>
-                </div>
-              </div>
-
-              {/* Avatar Image representing status */}
+            {/* Circular gauge */}
+            <div style={{ position: 'relative', width: 130, height: 130, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, marginLeft: '12px' }}>
+              {/* Background glow blob */}
               <div style={{
-                width: '110px',
-                height: '110px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative'
-              }}>
-                <img
-                  src={standingImg}
-                  alt={`Mascot for status ${statusLabel}`}
-                  style={{
-                    maxHeight: '100%',
-                    maxWidth: '100%',
-                    objectFit: 'contain',
-                    filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.12))'
-                  }}
+                position: 'absolute',
+                width: '90px', height: '90px', borderRadius: '50%',
+                background: scoreColor, filter: 'blur(30px)', opacity: 0.08,
+                pointerEvents: 'none'
+              }} />
+
+              <svg width="130" height="130" style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx="65" cy="65" r="50" fill="none" stroke="rgba(0, 0, 0, 0.03)" strokeWidth="8" />
+                <motion.circle
+                  cx="65" cy="65" r="50" fill="none"
+                  stroke={scoreColor}
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 50}`}
+                  initial={{ strokeDashoffset: 2 * Math.PI * 50 }}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 50 * (1 - securityScore / 100) }}
+                  transition={{ duration: 1.2, delay: 0.4, ease: 'easeOut' }}
+                  style={{ filter: `drop-shadow(0 0 4px ${scoreColor}80)` }}
                 />
+              </svg>
+              <div style={{
+                position: 'absolute',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center'
+              }}>
+                <span style={{
+                  fontSize: '32px',
+                  fontWeight: '950',
+                  color: textColor,
+                  lineHeight: 1,
+                  letterSpacing: '-0.02em',
+                }}>
+                  {securityScore}
+                </span>
+                <span style={{ fontSize: '9px', color: textColor, opacity: 0.7, fontWeight: '800', marginTop: '2px', letterSpacing: '0.05em' }}>/ 100 PTS</span>
               </div>
             </div>
 
             {/* Tactical Standing Tier */}
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 2 }}>
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px', zIndex: 2, paddingLeft: '12px' }}>
               <div style={{ fontSize: '9px', fontWeight: '800', color: textColor, opacity: 0.7, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 Tactical Standing
               </div>
               <div style={{
-                fontSize: isLow ? '11px' : '14px',
+                fontSize: isLow ? '11px' : '13px',
                 fontWeight: '900',
                 color: textColor,
                 background: '#fff',
                 border: `1px solid ${cardBorder}`,
-                padding: isLow ? '3px 12px' : '6px 20px',
+                padding: isLow ? '3px 12px' : '5px 18px',
                 borderRadius: '10px',
                 letterSpacing: '0.1em',
                 boxShadow: `0 4px 12px ${scoreColor}15`,
                 textAlign: 'center',
-                width: isLow ? '45%' : '80%',
+                minWidth: '90px',
                 textTransform: 'uppercase'
               }}>
                 {statusLabel}
               </div>
+            </div>
+
+            {/* Floating Character overlapping popout */}
+            <div className="shield-standing-mascot-wrapper">
+              <img
+                src={standingImg}
+                alt={`Mascot for status ${statusLabel}`}
+                style={{
+                  maxHeight: '100%',
+                  maxWidth: '100%',
+                  objectFit: 'contain',
+                  filter: 'drop-shadow(0 12px 24px rgba(0,0,0,0.18))'
+                }}
+              />
             </div>
           </motion.div>
 
