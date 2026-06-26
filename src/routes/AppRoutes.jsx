@@ -65,6 +65,7 @@ import KnowledgeHub from '../pages/employee/KnowledgeHub';
 import ReportLandingPage from '../pages/employee/ReportLandingPage';
 import UserLeaderboard from '../pages/employee/Leaderboard';
 import MessageWithAdmin from '../pages/employee/MessageWithAdmin';
+import EmployeeQuizzes from '../pages/employee/Quizzes';
 import SupportMessages from '../pages/admin/SupportMessages';
 
 // Conditionally renders the AI chatbot only on admin routes, excluding login pages
@@ -167,6 +168,7 @@ const AppRoutes = () => {
           <Route path="dashboard" element={<Home />} />
           <Route path="home" element={<Navigate to="/user/dashboard" replace />} />
           <Route path="training" element={<MyTraining />} />
+          <Route path="quizzes" element={<EmployeeQuizzes />} />
           <Route path="simulations" element={<Simulations />} />
           <Route path="report" element={<ReportEmail />} />
           <Route path="progress" element={<MyProgress />} />

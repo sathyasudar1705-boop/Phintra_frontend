@@ -5,7 +5,7 @@ import { useConfirm } from '../../hooks/useConfirm';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, BookOpen, Mail, Trophy, MessageCircle, Settings, LogOut,
-  Menu, X, ShieldCheck, Zap, Flame, Bell, ChevronDown
+  Menu, X, ShieldCheck, Zap, Flame, Bell, ChevronDown, Award
 } from 'lucide-react';
 import phintraLogo from '../../assets/phintra_logo.png';
 
@@ -32,6 +32,14 @@ const UserTopbar = ({ onSearchClick, onNotificationsClick }) => {
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [quizzesDropdownOpen, setQuizzesDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    if (!quizzesDropdownOpen) return;
+    const handleOutsideClick = () => setQuizzesDropdownOpen(false);
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, [quizzesDropdownOpen]);
 
   const unreadCount = notifications ? notifications.filter(n => !n.is_read).length : 0;
   const xp = currentUser?.rewards_balance || 1010;
@@ -128,6 +136,131 @@ const UserTopbar = ({ onSearchClick, onNotificationsClick }) => {
       <nav style={{ display: 'flex', alignItems: 'center', gap: '4px' }} className="emp-desktop-nav">
         {NAV_ITEMS.map(item => {
           const active = isActive(item.path);
+          const isTrainings = item.name === 'Trainings';
+
+          if (isTrainings) {
+            return (
+              <div key={item.path} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <Link
+                  to={item.path}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 32px 8px 16px',
+                    borderRadius: '99px',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    color: active ? item.color : '#64748b',
+                    textDecoration: 'none',
+                    position: 'relative',
+                    transition: 'color 0.2s ease',
+                    background: active ? item.colorBg : 'transparent',
+                    border: active ? `1px solid ${item.colorBorder}` : '1px solid transparent',
+                  }}
+                  className="emp-nav-link"
+                  data-color={item.color}
+                  data-glow={item.colorGlow}
+                >
+                  {/* Pulsing outer glow ring — per-page color */}
+                  {active && (
+                    <motion.div
+                      animate={{ opacity: [0.4, 1, 0.4] }}
+                      transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                      style={{
+                        position: 'absolute',
+                        inset: '-2px',
+                        borderRadius: '99px',
+                        border: `1.5px solid ${item.colorGlow}`,
+                        pointerEvents: 'none',
+                        zIndex: -1,
+                      }}
+                    />
+                  )}
+                  <motion.span
+                    animate={active ? { scale: [1, 1.15, 1] } : {}}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
+                    style={{ display: 'flex', alignItems: 'center' }}
+                  >
+                    <item.icon size={15} style={{ opacity: active ? 1 : 0.7 }} />
+                  </motion.span>
+                  {item.name}
+                </Link>
+
+                {/* Dropdown Arrow */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setQuizzesDropdownOpen(!quizzesDropdownOpen);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '2px',
+                    color: active ? item.color : '#64748b',
+                    zIndex: 3
+                  }}
+                >
+                  <ChevronDown size={12} style={{ transform: quizzesDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} />
+                </button>
+
+                {/* Submenu Dropdown */}
+                <AnimatePresence>
+                  {quizzesDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        marginTop: '8px',
+                        background: '#fff',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                        zIndex: 100,
+                        minWidth: '150px',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <div 
+                        onClick={() => {
+                          setQuizzesDropdownOpen(false);
+                          navigate('/user/quizzes');
+                        }}
+                        style={{
+                          padding: '12px 16px',
+                          fontSize: '13px',
+                          fontWeight: '700',
+                          color: '#334155',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          transition: 'background 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <Award size={14} color="#7c3aed" />
+                        Quizzes Page
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          }
+
           return (
             <Link
               key={item.path}
@@ -389,30 +522,59 @@ const UserTopbar = ({ onSearchClick, onNotificationsClick }) => {
           >
             {NAV_ITEMS.map(item => {
               const active = isActive(item.path);
+              const isTrainings = item.name === 'Trainings';
               return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '12px 16px',
-                    borderRadius: '12px',
-                    fontSize: '14px',
-                    fontWeight: '700',
-                    color: active ? item.color : '#64748b',
-                    background: active ? item.colorBg : 'transparent',
-                    border: active ? `1px solid ${item.colorBorder}` : '1px solid transparent',
-                    textDecoration: 'none',
-                    transition: 'all 0.15s'
-                  }}
-                  className="emp-mobile-link"
-                >
-                  <item.icon size={16} />
-                  {item.name}
-                </Link>
+                <React.Fragment key={item.path}>
+                  <Link
+                    to={item.path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px 16px',
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      fontWeight: '700',
+                      color: active ? item.color : '#64748b',
+                      background: active ? item.colorBg : 'transparent',
+                      border: active ? `1px solid ${item.colorBorder}` : '1px solid transparent',
+                      textDecoration: 'none',
+                      transition: 'all 0.15s'
+                    }}
+                    className="emp-mobile-link"
+                  >
+                    <item.icon size={16} />
+                    {item.name}
+                  </Link>
+
+                  {isTrainings && (
+                    <Link
+                      to="/user/quizzes"
+                      onClick={() => setMobileMenuOpen(false)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '8px 16px 8px 36px',
+                        borderRadius: '12px',
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        color: location.pathname === '/user/quizzes' ? '#7c3aed' : '#64748b',
+                        background: location.pathname === '/user/quizzes' ? 'rgba(124,58,237,0.08)' : 'transparent',
+                        border: '1px solid transparent',
+                        textDecoration: 'none',
+                        transition: 'all 0.15s',
+                        marginTop: '-2px',
+                        marginBottom: '2px'
+                      }}
+                      className="emp-mobile-link"
+                    >
+                      <Award size={14} />
+                      Quizzes Page
+                    </Link>
+                  )}
+                </React.Fragment>
               );
             })}
           </motion.div>
