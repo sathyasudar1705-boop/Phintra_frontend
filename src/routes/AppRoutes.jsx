@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { AdminProtectedRoute, EmployeeProtectedRoute } from './ProtectedRoute';
+import { MicrosoftRedirectHandler } from '../auth/MicrosoftRedirectHandler';
 
 // Layout Wrappers
 import AuthLayout from '../layouts/AuthLayout';
@@ -80,127 +81,109 @@ const AppRoutes = () => {
 
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Public Landing Page for Phishing click tracking */}
-        <Route path="/report/:track_id" element={<ReportLandingPage />} />
+      <MicrosoftRedirectHandler>
+        <Routes>
+          {/* Public Landing Page for Phishing click tracking */}
+          <Route path="/report/:track_id" element={<ReportLandingPage />} />
 
-        {/* 1. Auth Routing */}
-        <Route element={<AuthLayout />}>
-          <Route path="/login" element={<Navigate to="/admin/login" replace />} />
-          <Route path="/employee-login" element={<Navigate to="/user/login" replace />} />
-          <Route path="/admin/login" element={<Login />} />
-          <Route path="/user/login" element={<EmployeeLogin />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-        </Route>
+          {/* 1. Auth Routing */}
+          <Route element={<AuthLayout />}>
+            <Route path="/login" element={<Navigate to="/admin/login" replace />} />
+            <Route path="/employee-login" element={<Navigate to="/user/login" replace />} />
+            <Route path="/admin/login" element={<Login />} />
+            <Route path="/user/login" element={<EmployeeLogin />} />
+            <Route path="/register" element={<Navigate to="/admin/login" replace />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+          </Route>
 
-        {/* 2. Admin Portal Routing */}
-        <Route path="/admin" element={
-          <AdminProtectedRoute allowedRoles={['Security Administrator', 'Security Manager']}>
-            <AdminLayout />
-          </AdminProtectedRoute>
-        }>
-          <Route index element={<AdminRedirect />} />
-          <Route path="dashboard" element={
-            <AdminProtectedRoute allowedRoles={['Security Administrator']}>
-              <Dashboard />
+          {/* 2. Admin Portal Routing */}
+          <Route path="/admin" element={
+            <AdminProtectedRoute allowedRoles={['Security Administrator', 'Security Manager']}>
+              <AdminLayout />
             </AdminProtectedRoute>
-          } />
-          <Route path="manager-dashboard" element={
-            <AdminProtectedRoute allowedRoles={['Security Manager']}>
-              <ManagerDashboard />
-            </AdminProtectedRoute>
-          } />
-          <Route path="campaigns" element={<Campaigns />} />
-          <Route path="create-campaign" element={<CreateCampaign />} />
-          <Route path="templates" element={<EmailTemplates />} />
-          <Route path="employees" element={<Employees />} />
-          <Route path="departments" element={<Departments />} />
-          <Route path="modules" element={<TrainingModules />} />
-          <Route path="quizzes" element={<Quizzes />} />
-          <Route path="reports" element={<ReportedEmails />} />
-          <Route path="messages" element={<SupportMessages />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="leaderboard" element={<Leaderboard />} />
-          <Route path="settings" element={
-            <AdminProtectedRoute allowedRoles={['Security Administrator']}>
-              <Settings />
-            </AdminProtectedRoute>
-          } />
-          <Route path="template-builder" element={<TemplateBuilder />} />
-          <Route path="landing-page-builder" element={<LandingPageBuilder />} />
-          <Route path="campaign-calendar" element={<CampaignCalendar />} />
-          <Route path="audit-logs" element={<AuditLogs />} />
-          <Route path="email-logs" element={<EmailLogs />} />
-          <Route path="roles-permissions" element={
-            <AdminProtectedRoute allowedRoles={['Security Administrator']}>
-              <RolesPermissions />
-            </AdminProtectedRoute>
-          } />
-          <Route path="security-maturity" element={<SecurityMaturity />} />
-          <Route path="executive-dashboard" element={<ExecutiveDashboard />} />
-          <Route path="threat-feed" element={<ThreatFeed />} />
-          <Route path="awareness-builder" element={<AwarenessBuilder />} />
-          <Route path="email-simulator" element={<EmailSimulator />} />
-          <Route path="awareness-insights" element={<AwarenessInsights />} />
-        </Route>
+          }>
+            <Route index element={<AdminRedirect />} />
+            <Route path="dashboard" element={
+              <AdminProtectedRoute allowedRoles={['Security Administrator']}>
+                <Dashboard />
+              </AdminProtectedRoute>
+            } />
+            <Route path="manager-dashboard" element={
+              <AdminProtectedRoute allowedRoles={['Security Manager']}>
+                <ManagerDashboard />
+              </AdminProtectedRoute>
+            } />
+            <Route path="executive-dashboard" element={<ExecutiveDashboard />} />
+            <Route path="campaigns" element={<Campaigns />} />
+            <Route path="create-campaign" element={<CreateCampaign />} />
+            <Route path="email-templates" element={<EmailTemplates />} />
+            <Route path="employees" element={<Employees />} />
+            <Route path="departments" element={<Departments />} />
+            <Route path="training-modules" element={<TrainingModules />} />
+            <Route path="quizzes" element={<Quizzes />} />
+            <Route path="reported-emails" element={<ReportedEmails />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="leaderboard" element={<Leaderboard />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="template-builder" element={<TemplateBuilder />} />
+            <Route path="landing-builder" element={<LandingPageBuilder />} />
+            <Route path="calendar" element={<CampaignCalendar />} />
+            <Route path="audit-logs" element={<AuditLogs />} />
+            <Route path="email-logs" element={<EmailLogs />} />
+            <Route path="roles-permissions" element={<RolesPermissions />} />
+            <Route path="security-maturity" element={<SecurityMaturity />} />
+            <Route path="threat-feed" element={<ThreatFeed />} />
+            <Route path="awareness-builder" element={<AwarenessBuilder />} />
+            <Route path="email-simulator" element={<EmailSimulator />} />
+            <Route path="support-messages" element={<SupportMessages />} />
+          </Route>
 
-        {/* 3. Employee Portal Routing */}
-        <Route path="/user" element={
-          <EmployeeProtectedRoute>
-            <UserLayout />
-          </EmployeeProtectedRoute>
-        }>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<Home />} />
-          <Route path="home" element={<Navigate to="/user/dashboard" replace />} />
-          <Route path="training" element={<MyTraining />} />
-          <Route path="quizzes" element={<EmployeeQuizzes />} />
-          <Route path="simulations" element={<Simulations />} />
-          <Route path="report" element={<ReportEmail />} />
-          <Route path="progress" element={<MyProgress />} />
-          <Route path="leaderboard" element={<UserLeaderboard />} />
-          <Route path="certificates" element={<Certificates />} />
-          <Route path="help" element={<HelpCenter />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="learning-feed" element={<LearningFeed />} />
-          <Route path="scenario-training" element={<ScenarioTraining />} />
-          <Route path="red-flag-training" element={<RedFlagTraining />} />
-          <Route path="login-awareness" element={<LoginAwareness />} />
-          <Route path="learning-center" element={<LearningCenter />} />
-          <Route path="challenges" element={<Challenges />} />
-          <Route path="security-journey" element={<SecurityJourney />} />
-          <Route path="knowledge-hub" element={<KnowledgeHub />} />
-          <Route path="messages" element={<MessageWithAdmin />} />
-        </Route>
+          {/* 3. Employee Portal Routing */}
+          <Route path="/user" element={
+            <EmployeeProtectedRoute>
+              <UserLayout />
+            </EmployeeProtectedRoute>
+          }>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<Home />} />
+            <Route path="home" element={<Navigate to="/user/dashboard" replace />} />
+            <Route path="training" element={<MyTraining />} />
+            <Route path="quizzes" element={<EmployeeQuizzes />} />
+            <Route path="simulations" element={<Simulations />} />
+            <Route path="report" element={<ReportEmail />} />
+            <Route path="progress" element={<MyProgress />} />
+            <Route path="leaderboard" element={<UserLeaderboard />} />
+            <Route path="certificates" element={<Certificates />} />
+            <Route path="help" element={<HelpCenter />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="learning-feed" element={<LearningFeed />} />
+            <Route path="scenario-training" element={<ScenarioTraining />} />
+            <Route path="red-flag-training" element={<RedFlagTraining />} />
+            <Route path="login-awareness" element={<LoginAwareness />} />
+            <Route path="learning-center" element={<LearningCenter />} />
+            <Route path="challenges" element={<Challenges />} />
+            <Route path="security-journey" element={<SecurityJourney />} />
+            <Route path="knowledge-hub" element={<KnowledgeHub />} />
+            <Route path="messages" element={<MessageWithAdmin />} />
+          </Route>
 
-        {/* 4. Root Catch Redirect */}
-        <Route path="/" element={
-          (window.location.hash.includes("code=") || 
-           window.location.hash.includes("id_token=") || 
-           window.location.hash.includes("access_token=") || 
-           window.location.search.includes("code=") || 
-           window.location.search.includes("state=")) ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'sans-serif', background: '#F8FAFC' }}>
-              <div style={{ textAlign: 'center' }}>
-                <h2 style={{ color: '#0F172A', marginBottom: '8px' }}>Completing Microsoft Sign-in...</h2>
-                <p style={{ color: '#64748B', margin: 0 }}>Please wait while we establish your secure session.</p>
-              </div>
-            </div>
-          ) : isAuthenticated ? (
-            userRole === 'Security Administrator' ? (
-              <Navigate to="/admin/dashboard" replace />
-            ) : userRole === 'Security Manager' ? (
-              <Navigate to="/admin/manager-dashboard" replace />
+          {/* 4. Root Catch Redirect */}
+          <Route path="/" element={
+            isAuthenticated ? (
+              userRole === 'Security Administrator' ? (
+                <Navigate to="/admin/dashboard" replace />
+              ) : userRole === 'Security Manager' ? (
+                <Navigate to="/admin/manager-dashboard" replace />
+              ) : (
+                <Navigate to="/user/dashboard" replace />
+              )
             ) : (
-              <Navigate to="/user/dashboard" replace />
+              <Navigate to="/user/login" replace />
             )
-          ) : (
-            <Navigate to="/user/login" replace />
-          )
-        } />
-        <Route path="*" element={<Navigate to="/user/login" replace />} />
-      </Routes>
+          } />
+          <Route path="*" element={<Navigate to="/user/login" replace />} />
+        </Routes>
+      </MicrosoftRedirectHandler>
     </BrowserRouter>
   );
 };

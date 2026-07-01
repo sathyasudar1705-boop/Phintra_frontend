@@ -1,13 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
-import { useMsal } from '@azure/msal-react';
-import { loginRequest } from '../services/msal';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const { instance, accounts, inProgress } = useMsal();
-
   const [adminAuth, setAdminAuth] = useState(() => {
     return localStorage.getItem('adminAuth') === 'true';
   });
@@ -38,55 +34,7 @@ export const AuthProvider = ({ children }) => {
     };
   });
 
-  useEffect(() => {
-    const checkActiveAccountAndLogin = async () => {
-      const activeAccount = instance.getActiveAccount() || accounts[0];
-      if (activeAccount && !adminAuth && !employeeAuth) {
-        try {
-          const portalType = localStorage.getItem('sso_portal_type') || 'employee';
-          const response = await instance.acquireTokenSilent({
-            ...loginRequest,
-            account: activeAccount
-          });
-          const msalToken = response.accessToken;
-          localStorage.removeItem('sso_portal_type');
-          
-          const res = await microsoftLogin(msalToken, portalType);
-          if (res.success) {
-            if (portalType === 'admin') {
-              if (res.role === 'Security Administrator') window.location.href = '/admin/dashboard';
-              else if (res.role === 'Security Manager') window.location.href = '/admin/manager-dashboard';
-              else window.location.href = '/user/dashboard';
-            } else {
-              window.location.href = '/user/dashboard';
-            }
-          } else {
-            // Backend validation failed (e.g., email not registered)
-            instance.setActiveAccount(null);
-            if (portalType === 'admin') {
-              window.location.href = `/admin/login?error=${encodeURIComponent(res.message)}`;
-            } else {
-              window.location.href = `/user/login?error=${encodeURIComponent(res.message)}`;
-            }
-          }
-        } catch (err) {
-          console.error("Silent token acquisition failed:", err);
-          instance.setActiveAccount(null);
-          const portalType = localStorage.getItem('sso_portal_type') || 'employee';
-          localStorage.removeItem('sso_portal_type');
-          const errMsg = err.response?.data?.detail || err.message || 'Microsoft login failed.';
-          if (portalType === 'admin') {
-            window.location.href = `/admin/login?error=${encodeURIComponent(errMsg)}`;
-          } else {
-            window.location.href = `/user/login?error=${encodeURIComponent(errMsg)}`;
-          }
-        }
-      }
-    };
-    if (inProgress === 'none') {
-      checkActiveAccountAndLogin();
-    }
-  }, [accounts, instance, inProgress, adminAuth, employeeAuth]);
+
 
   // Map backend roles (Admin, Manager, Employee) to frontend UI expected roles
   const mapBackendRoleToFrontend = (role) => {

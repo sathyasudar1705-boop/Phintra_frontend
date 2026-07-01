@@ -7,14 +7,11 @@ import {
 } from 'lucide-react';
 import loginIllustration from '../../assets/login_illustration.png';
 import phintraLogo from '../../assets/phintra_logo.png';
-import { useMsal } from '@azure/msal-react';
-import { loginRequest } from '../../services/msal';
+import { MicrosoftLoginButton } from '../../auth/MicrosoftLoginButton';
 
 const EmployeeLogin = () => {
   const { employeeLogin, microsoftLogin, isAuthenticated, userRole } = useAppContext();
   const navigate = useNavigate();
-  const { instance, inProgress } = useMsal();
-  const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -71,32 +68,7 @@ const EmployeeLogin = () => {
     }
   }, [isAuthenticated, userRole, navigate]);
 
-  const handleMicrosoftLogin = async () => {
-    if (inProgress !== 'none' || isMicrosoftLoading) {
-      return;
-    }
-    setIsMicrosoftLoading(true);
-    setGeneralError('');
-    try {
-      localStorage.setItem('sso_portal_type', 'employee');
-      await instance.loginRedirect(loginRequest);
-    } catch (err) {
-      console.error("Microsoft Login Error:", err);
-      setIsMicrosoftLoading(false);
-      if (err.errorCode === 'interaction_in_progress' || err.message?.includes('interaction_in_progress')) {
-        // Clear stuck MSAL interaction state from session storage
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const key = sessionStorage.key(i);
-          if (key && key.startsWith('msal.')) {
-            sessionStorage.removeItem(key);
-          }
-        }
-        setGeneralError('A login window was already open. We have reset the login session. Please try clicking "Continue with Microsoft" again.');
-      } else {
-        setGeneralError(err.message || 'Microsoft login failed. Please try again.');
-      }
-    }
-  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -238,27 +210,7 @@ const EmployeeLogin = () => {
             </div>
           )}
 
-          {/* Microsoft SSO */}
-          <button type="button" onClick={handleMicrosoftLogin} disabled={loading || isMicrosoftLoading || inProgress !== "none"}
-            className="auth-sso-btn"
-            style={{
-              width: '100%', padding: '14px 16px', borderRadius: '12px',
-              background: '#FFFFFF', border: '1.5px solid #E2E8F0',
-              color: '#334155', fontSize: '14.5px', fontWeight: '700',
-              cursor: (loading || isMicrosoftLoading || inProgress !== "none") ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
-              boxShadow: '0 2px 4px rgba(15, 23, 42, 0.02)', transition: 'all 0.2s',
-              marginBottom: '24px',
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 21 21">
-              <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-              <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-              <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-              <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-            </svg>
-            {isMicrosoftLoading ? "Connecting..." : "Continue with Microsoft"}
-          </button>
+          <MicrosoftLoginButton onError={setGeneralError} />
 
           {/* Divider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px' }}>
