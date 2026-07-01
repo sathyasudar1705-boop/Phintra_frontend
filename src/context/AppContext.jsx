@@ -129,7 +129,7 @@ export const AppProvider = ({ children }) => {
               employeeName: r.employee_name || "Unknown Employee",
               senderEmail: r.email_sender || "unknown@sender.com",
               subject: r.email_subject || "No Subject",
-              campaignName: r.campaign_name || "External Gmail Report",
+              campaignName: r.campaign_name || "External Outlook Report",
               riskScore: r.risk_score || 0,
               riskLevel: r.risk_level || ((r.risk_score || 0) > 70 ? "High" : (r.risk_score || 0) > 30 ? "Medium" : "Low"),
               status: r.report_status || "Pending",
@@ -205,6 +205,21 @@ export const AppProvider = ({ children }) => {
               setCertificates(mappedCerts);
             }
           }).catch(e => console.warn("Could not fetch employee dashboard data:", e))
+        );
+        promises.push(
+          api.get('/employee/training-modules').then(res => {
+            const mappedModules = (res.data || []).map(m => ({
+              id: m.id,
+              name: m.title || m.name,
+              description: m.description,
+              difficulty: m.difficulty || "Medium",
+              duration: typeof m.duration === 'number' ? `${m.duration} mins` : (m.duration || "15 mins"),
+              isCompleted: m.status === 'completed',
+              progress: m.status === 'completed' ? 100 : (m.status === 'in_progress' ? 50 : 0),
+              locked: false
+            }));
+            setTrainingModules(mappedModules);
+          }).catch(e => console.warn("Could not fetch employee training modules:", e))
         );
         promises.push(
           api.get('/campaigns/employee/campaign-feed').then(res => {

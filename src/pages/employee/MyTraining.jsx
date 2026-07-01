@@ -29,7 +29,7 @@ import stackOfBooksImg from '../../assets/stack_of_books_3d.png';
 
 const UserTraining = () => {
   const toast = useToast();
-  const { currentUser, certificates } = useAppContext();
+  const { currentUser, certificates, fetchData } = useAppContext();
   
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -61,6 +61,7 @@ const UserTraining = () => {
       await api.post(`/training-modules/${modId}/complete`);
       toast.success('Course completed! +100 XP awarded.');
       fetchModules();
+      if (fetchData) fetchData();
     } catch (err) {
       toast.error('Failed to mark training as completed.');
     }

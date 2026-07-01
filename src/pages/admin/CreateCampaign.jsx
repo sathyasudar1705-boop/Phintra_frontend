@@ -260,7 +260,7 @@ const CreateCampaign = () => {
       <div className="saas-header">
         <div className="saas-title-group">
           <h1>New Training Campaign</h1>
-          <p>Configure a cybersecurity training campaign to deliver targeted security alerts via Gmail SMTP.</p>
+          <p>Configure a cybersecurity training campaign to deliver targeted security alerts via Outlook SMTP.</p>
         </div>
       </div>
 

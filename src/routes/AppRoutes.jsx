@@ -27,8 +27,6 @@ import ReportedEmails from '../pages/admin/ReportedEmails';
 import Analytics from '../pages/admin/Analytics';
 import Leaderboard from '../pages/admin/Leaderboard';
 import Settings from '../pages/admin/Settings';
-import AIAnalytics from '../pages/admin/AIAnalytics';
-import AIDebug from '../pages/admin/AIDebug';
 import TemplateBuilder from '../pages/admin/TemplateBuilder';
 import LandingPageBuilder from '../pages/admin/LandingPageBuilder';
 import CampaignCalendar from '../pages/admin/CampaignCalendar';
@@ -38,10 +36,8 @@ import RolesPermissions from '../pages/admin/RolesPermissions';
 import SecurityMaturity from '../pages/admin/SecurityMaturity';
 import ExecutiveDashboard from '../pages/admin/ExecutiveDashboard';
 import ThreatFeed from '../pages/admin/ThreatFeed';
-import FloatingAIChatbot from '../components/common/FloatingAIChatbot';
 import AwarenessBuilder from '../pages/admin/AwarenessBuilder';
 import EmailSimulator from '../pages/admin/EmailSimulator';
-import AISecurityCoach from '../pages/admin/AISecurityCoach';
 import AwarenessInsights from '../pages/admin/AwarenessInsights';
 import ManagerDashboard from '../pages/admin/ManagerDashboard';
 
@@ -68,13 +64,7 @@ import MessageWithAdmin from '../pages/employee/MessageWithAdmin';
 import EmployeeQuizzes from '../pages/employee/Quizzes';
 import SupportMessages from '../pages/admin/SupportMessages';
 
-// Conditionally renders the AI chatbot only on admin routes, excluding login pages
-const AdminOnlyChatbot = () => {
-  const location = useLocation();
-  const path = location.pathname.toLowerCase();
-  if (!path.startsWith('/admin') || path.includes('login')) return null;
-  return <FloatingAIChatbot />;
-};
+
 
 
 const AdminRedirect = () => {
@@ -137,8 +127,6 @@ const AppRoutes = () => {
               <Settings />
             </AdminProtectedRoute>
           } />
-          <Route path="ai-analytics" element={<AIAnalytics />} />
-          <Route path="ai-debug" element={<AIDebug />} />
           <Route path="template-builder" element={<TemplateBuilder />} />
           <Route path="landing-page-builder" element={<LandingPageBuilder />} />
           <Route path="campaign-calendar" element={<CampaignCalendar />} />
@@ -154,7 +142,6 @@ const AppRoutes = () => {
           <Route path="threat-feed" element={<ThreatFeed />} />
           <Route path="awareness-builder" element={<AwarenessBuilder />} />
           <Route path="email-simulator" element={<EmailSimulator />} />
-          <Route path="ai-security-coach" element={<AISecurityCoach />} />
           <Route path="awareness-insights" element={<AwarenessInsights />} />
         </Route>
 
@@ -189,7 +176,18 @@ const AppRoutes = () => {
 
         {/* 4. Root Catch Redirect */}
         <Route path="/" element={
-          isAuthenticated ? (
+          (window.location.hash.includes("code=") || 
+           window.location.hash.includes("id_token=") || 
+           window.location.hash.includes("access_token=") || 
+           window.location.search.includes("code=") || 
+           window.location.search.includes("state=")) ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'sans-serif', background: '#F8FAFC' }}>
+              <div style={{ textAlign: 'center' }}>
+                <h2 style={{ color: '#0F172A', marginBottom: '8px' }}>Completing Microsoft Sign-in...</h2>
+                <p style={{ color: '#64748B', margin: 0 }}>Please wait while we establish your secure session.</p>
+              </div>
+            </div>
+          ) : isAuthenticated ? (
             userRole === 'Security Administrator' ? (
               <Navigate to="/admin/dashboard" replace />
             ) : userRole === 'Security Manager' ? (
@@ -203,7 +201,6 @@ const AppRoutes = () => {
         } />
         <Route path="*" element={<Navigate to="/user/login" replace />} />
       </Routes>
-      <AdminOnlyChatbot />
     </BrowserRouter>
   );
 };

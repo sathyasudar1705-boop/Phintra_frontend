@@ -62,7 +62,7 @@ const UserProgress = () => {
               flexDirection: 'column',
               alignItems: 'center'
             }}>
-              <span style={{ fontSize: '32px', fontWeight: '800', color: 'var(--text-main)', lineHeight: '1' }}>{currentUser.securityScore}</span>
+              <span className="gamified-metric score-number" style={{ fontSize: '32px', fontWeight: '800', color: 'var(--text-main)', lineHeight: '1' }}>{currentUser.securityScore}</span>
               <span style={{ fontSize: '11px', color: 'var(--text-subtle)', marginTop: '4px', fontWeight: '600' }}>Grade A</span>
             </div>
           </div>
@@ -166,7 +166,7 @@ const UserProgress = () => {
                 >
                   <div style={{ display: 'flex', justify_content: 'space-between', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                     <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>{q.module_title} Quiz</strong>
-                    <span style={{ fontSize: '13px', fontWeight: '700', color: q.passed ? 'var(--color-success)' : 'var(--color-danger)' }}>{q.score}%</span>
+                    <span className="gamified-metric score-number" style={{ fontSize: '13px', fontWeight: '700', color: q.passed ? 'var(--color-success)' : 'var(--color-danger)' }}>{q.score}%</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-light)' }}>
                     <span>{q.attempted_at ? q.attempted_at.split('T')[0] : 'N/A'}</span>

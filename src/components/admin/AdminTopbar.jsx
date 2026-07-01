@@ -15,7 +15,6 @@ const AdminTopbar = ({ onMenuClick, onSearchClick, onNotificationsClick }) => {
         { name: 'Dashboard', path: '/admin/dashboard' },
         { name: 'Executive Dashboard', path: '/admin/executive-dashboard' },
         { name: 'Analytics', path: '/admin/analytics' },
-        { name: 'AI Analytics', path: '/admin/ai-analytics' },
         { name: 'Awareness Insights', path: '/admin/awareness-insights' },
       ]
     },
@@ -55,7 +54,6 @@ const AdminTopbar = ({ onMenuClick, onSearchClick, onNotificationsClick }) => {
         { name: 'Quizzes', path: '/admin/quizzes' },
         { name: 'Roles & Permissions', path: '/admin/roles-permissions' },
         { name: 'Leaderboard', path: '/admin/leaderboard' },
-        { name: 'AI Security Coach', path: '/admin/ai-security-coach' },
         { name: 'Settings', path: '/admin/settings' },
       ]
     }

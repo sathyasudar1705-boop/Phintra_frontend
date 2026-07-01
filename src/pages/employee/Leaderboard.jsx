@@ -556,7 +556,7 @@ const UserLeaderboard = () => {
                     background: numBgColor,
                     borderRadius: '16px 0 0 16px',
                   }}>
-                    <span style={{
+                    <span className="gamified-metric rank-number" style={{
                       fontSize: rank === 1 ? '34px' : rank <= 3 ? '26px' : '20px',
                       fontWeight: '900', color: numTextColor, lineHeight: 1,
                     }}>{rank}</span>
@@ -603,14 +603,14 @@ const UserLeaderboard = () => {
                     flexShrink: 0, gap: '4px',
                     padding: rank <= 3 ? '0 165px 0 16px' : '0 16px',
                   }}>
-                    <span style={{
+                    <span className="gamified-metric score-number" style={{
                       fontSize: rank === 1 ? '26px' : rank <= 3 ? '22px' : '18px',
                       fontWeight: '900', color: scoreColor,
                       letterSpacing: '-0.03em',
                     }}>
                       {score}<span style={{ fontSize: rank === 1 ? '15px' : '13px', opacity: 0.7 }}>/100</span>
                     </span>
-                    <span style={{ fontSize: '10px', color: xpColor, fontWeight: '750', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <span className="gamified-metric xp-amount" style={{ fontSize: '10px', color: xpColor, fontWeight: '750', display: 'flex', alignItems: 'center', gap: '3px' }}>
                       <Zap size={9} /> {xp.toLocaleString()} XP
                     </span>
                     {emp.reports_count > 0 && (

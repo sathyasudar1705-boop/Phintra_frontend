@@ -103,7 +103,7 @@ const Challenges = () => {
         </div>
         <div>
           <span style={{ fontSize: '12px', color: '#ccfbf1', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Accumulated XP</span>
-          <h2 style={{ fontSize: '32px', fontWeight: '800', color: '#ffffff', margin: 0 }}>{totalXp} XP</h2>
+          <h2 className="gamified-metric xp-amount" style={{ fontSize: '32px', fontWeight: '800', color: '#ffffff', margin: 0 }}>{totalXp} XP</h2>
         </div>
       </div>
 
@@ -125,7 +125,7 @@ const Challenges = () => {
                   <h3 style={{ fontSize: '16px', fontWeight: '700' }}>{scen.title}</h3>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="badge badge-medium" style={{ fontSize: '11px', fontWeight: '700' }}>+{scen.xp} XP</span>
+                  <span className="gamified-metric badge badge-medium" style={{ fontSize: '11px', fontWeight: '700' }}>+{scen.xp} XP</span>
                   {isSolved && (
                     <span className="badge badge-passed" style={{ fontSize: '11px' }}>
                       Solved

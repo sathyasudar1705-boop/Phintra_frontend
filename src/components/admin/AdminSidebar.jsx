@@ -24,7 +24,6 @@ const AdminSidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
         { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
         { name: 'Executive Dashboard', path: '/admin/executive-dashboard', icon: Activity },
         { name: 'Analytics', path: '/admin/analytics', icon: BarChart3 },
-        { name: 'AI Analytics', path: '/admin/ai-analytics', icon: Brain },
         { name: 'Awareness Insights', path: '/admin/awareness-insights', icon: BarChart3 },
       ]
     },
@@ -66,7 +65,6 @@ const AdminSidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
         { name: 'Quizzes', path: '/admin/quizzes', icon: Award },
         { name: 'Roles & Permissions', path: '/admin/roles-permissions', icon: Fingerprint },
         { name: 'Leaderboard', path: '/admin/leaderboard', icon: Trophy },
-        { name: 'AI Security Coach', path: '/admin/ai-security-coach', icon: Brain },
         { name: 'Settings', path: '/admin/settings', icon: Settings },
       ]
     }

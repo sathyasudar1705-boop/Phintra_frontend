@@ -1,16 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldCheck, Trophy, Zap, Flame, BookOpen, Mail, TrendingUp,
   CheckCircle, AlertTriangle, Play, ChevronRight, Star, Target,
-  Award, Clock, ArrowRight, Users, Lock
+  Award, Clock, ArrowRight, Users, Lock, Shield
 } from 'lucide-react';
 import celebrationImg from '../../assets/celebration.png';
 import shieldLowImg from '../../assets/shield_low.png';
 import shieldMidImg from '../../assets/shield_mid.png';
 import shieldHighImg from '../../assets/shield_high.png';
+import securityScoreIcon from '../../assets/security_score_icon.png';
+import rewardXpIcon from '../../assets/reward_xp_icon.png';
+import leaderboardIcon from '../../assets/leaderboard_icon.png';
+import trainingModulesIcon from '../../assets/training_modules_icon.png';
 
 /* ─── tiny animated counter ─── */
 const Counter = ({ value, suffix = '' }) => {
@@ -30,56 +34,70 @@ const Counter = ({ value, suffix = '' }) => {
   return <>{display}{suffix}</>;
 };
 
-/* ─── stat card ─── */
-const StatCard = ({ icon: Icon, label, value, suffix, sub, cardBg, cardBorder, textColor, iconColor, iconBg, delay = 0 }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 24 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.45, delay }}
-    whileHover={{ y: -4, boxShadow: '0 12px 30px rgba(0,0,0,0.06)' }}
-    style={{
-      background: cardBg || '#fff',
-      border: `1px solid ${cardBorder || '#e2e8f0'}`,
-      borderRadius: '20px',
-      padding: '24px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '16px',
-      cursor: 'default',
-      transition: 'box-shadow 0.25s ease, transform 0.25s ease',
-    }}
-  >
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+const StatCard = ({ icon: Icon, imgSrc, imgSize, label, value, suffix, sub, cardBg, cardBorder, textColor, iconColor, iconBg, delay = 0 }) => {
+  const finalSize = imgSize || '100px';
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay }}
+      whileHover={{ y: -4, boxShadow: '0 12px 30px rgba(0,0,0,0.06)' }}
+      style={{
+        background: cardBg || '#fff',
+        border: `1px solid ${cardBorder || '#e2e8f0'}`,
+        borderRadius: '20px',
+        padding: '20px 24px',
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '16px',
+        cursor: 'default',
+        transition: 'box-shadow 0.25s ease, transform 0.25s ease',
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+          <span style={{
+            fontSize: '10px',
+            color: textColor || '#10b981',
+            fontWeight: '800',
+            background: 'rgba(255, 255, 255, 0.45)',
+            padding: '2px 8px',
+            borderRadius: '99px',
+            border: `1px solid ${cardBorder || 'rgba(0,0,0,0.05)'}`,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em'
+          }}>
+            ↑ Live
+          </span>
+        </div>
+        <div style={{ fontSize: '32px', fontWeight: '900', color: textColor || '#0f172a', lineHeight: 1.1, letterSpacing: '-0.03em' }}>
+          <Counter value={value} suffix={suffix} />
+        </div>
+        <div style={{ fontSize: '13px', fontWeight: '800', color: textColor || '#0f172a', marginTop: '2px' }}>{label}</div>
+        <div style={{ fontSize: '12px', color: textColor ? `${textColor}ba` : '#94a3b8', marginTop: '1px', fontWeight: '600' }}>{sub}</div>
+      </div>
+
       <div style={{
-        width: '46px', height: '46px', borderRadius: '14px',
-        background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: imgSrc ? finalSize : '46px',
+        height: imgSrc ? finalSize : '46px',
+        borderRadius: '14px',
+        background: imgSrc ? 'transparent' : iconBg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         flexShrink: 0
       }}>
-        <Icon size={22} color={iconColor || '#fff'} />
+        {imgSrc ? (
+          <img src={imgSrc} alt={label} style={{ width: finalSize, height: finalSize, objectFit: 'contain' }} />
+        ) : (
+          <Icon size={22} color={iconColor || '#fff'} />
+        )}
       </div>
-      <span style={{
-        fontSize: '11px',
-        color: textColor || '#10b981',
-        fontWeight: '800',
-        background: 'rgba(255, 255, 255, 0.45)',
-        padding: '3px 10px',
-        borderRadius: '99px',
-        border: `1px solid ${cardBorder || 'rgba(0,0,0,0.05)'}`,
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em'
-      }}>
-        ↑ Live
-      </span>
-    </div>
-    <div>
-      <div style={{ fontSize: '30px', fontWeight: '900', color: textColor || '#0f172a', lineHeight: 1.1, letterSpacing: '-0.03em' }}>
-        <Counter value={value} suffix={suffix} />
-      </div>
-      <div style={{ fontSize: '13px', fontWeight: '800', color: textColor || '#0f172a', marginTop: '2px' }}>{label}</div>
-      <div style={{ fontSize: '12px', color: textColor ? `${textColor}ba` : '#94a3b8', marginTop: '3px', fontWeight: '600' }}>{sub}</div>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
 /* ─── streak ring ─── */
 const StreakRing = ({ streak }) => {
@@ -109,6 +127,25 @@ const StreakRing = ({ streak }) => {
   );
 };
 
+/* ─── badge progression levels ─── */
+const BADGES = [
+  { level: 1, name: 'Leaf Badge', icon: Award, color: '#22c55e', desc: 'Starting your green journey.' },
+  { level: 2, name: 'Wood Badge', icon: Award, color: '#854d0e', desc: 'Building solid foundations.' },
+  { level: 3, name: 'Stone Badge', icon: Award, color: '#64748b', desc: 'Unshakable resilience.' },
+  { level: 4, name: 'Bronze Badge', icon: Shield, color: '#b45309', desc: 'First metal rank unlocked.' },
+  { level: 5, name: 'Silver Badge', icon: Shield, color: '#cbd5e1', desc: 'A shining shield of awareness.' },
+  { level: 6, name: 'Gold Badge', icon: Shield, color: '#eab308', desc: 'Gold standard security behavior.' },
+  { level: 7, name: 'Platinum Badge', icon: ShieldCheck, color: '#94a3b8', desc: 'Elite resilience level.' },
+  { level: 8, name: 'Diamond Badge', icon: Zap, color: '#06b6d4', desc: 'Brilliant awareness under pressure.' },
+  { level: 9, name: 'Cyber Shield Badge', icon: ShieldCheck, color: '#0d9488', desc: 'Your shield is digital and hardened.' },
+  { level: 10, name: 'Phishing Hunter Badge', icon: Target, color: '#ef4444', desc: 'Expert in catching phishing lures.' },
+  { level: 11, name: 'Security Defender Badge', icon: Lock, color: '#2563eb', desc: 'Defender of the digital perimeter.' },
+  { level: 12, name: 'Threat Guardian Badge', icon: ShieldCheck, color: '#7c3aed', desc: 'Guardian against emerging exploits.' },
+  { level: 13, name: 'Human Firewall Badge', icon: Users, color: '#0f766e', desc: 'An impenetrable line of defense.' },
+  { level: 14, name: 'Elite Protector Badge', icon: Star, color: '#f59e0b', desc: 'Protector of the entire workforce.' },
+  { level: 15, name: 'Cyber Champion Badge', icon: Trophy, color: '#eab308', desc: 'Supreme master of security awareness.' }
+];
+
 /* ─── main component ─── */
 const UserHome = () => {
   const { currentUser, trainingModules, simulations, certificates } = useAppContext();
@@ -132,19 +169,44 @@ const UserHome = () => {
 
   const firstName = currentUser?.name?.split(' ')[0] || 'Agent';
 
+  const currentBadgeIndex = Math.min(level - 1, 14);
+  const currentBadgeName = BADGES[currentBadgeIndex].name;
+  const nextBadgeName = level < 15 ? BADGES[Math.min(level, 14)].name : 'Max Tier Achieved';
+  const xpNeeded = level < 15 ? (level * 100) - xp : 0;
+
+  const scrollContainerRef = useRef(null);
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      const targetScroll = Math.max(0, 1200 - 450 - ((level - 1) / 14) * (1200 - 450));
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = targetScroll;
+        }
+      }, 100);
+    }
+  }, [level]);
+
+  const points = BADGES.map((b, idx) => {
+    const t = idx / 14;
+    const y = 92 - t * 84;
+    const x = 50 + Math.sin(t * Math.PI * 3) * 25;
+    return { ...b, x, y };
+  });
+
   /* greeting */
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   const isLow = securityScore < 34;
   const scoreColor = securityScore >= 68 ? '#10b981' : securityScore >= 34 ? '#f59e0b' : '#ef4444';
-  const textColor = securityScore >= 68 ? '#14532d' : securityScore >= 34 ? '#78350f' : '#881337';
+  const textColor = '#0f172a';
   const cardBg = securityScore >= 68 
     ? 'linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%)' 
     : securityScore >= 34 
-      ? 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)' 
+      ? 'linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)' 
       : 'linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%)';
-  const cardBorder = securityScore >= 68 ? '#bbf7d0' : securityScore >= 34 ? '#fde68a' : '#fecdd3';
+  const cardBorder = securityScore >= 68 ? '#bbf7d0' : securityScore >= 34 ? '#fed7aa' : '#fecdd3';
   const statusLabel = securityScore >= 68 ? 'HIGH' : securityScore >= 34 ? 'MEDIUM' : 'LOW';
 
   const standingImg = securityScore < 34 
@@ -163,10 +225,10 @@ const UserHome = () => {
         }
         .shield-standing-mascot-wrapper {
           position: absolute;
-          right: -18px;
-          bottom: -22px;
-          width: 170px;
-          height: 195px;
+          right: -24px;
+          bottom: -30px;
+          width: 210px;
+          height: 240px;
           display: flex;
           align-items: flex-end;
           justify-content: center;
@@ -176,16 +238,46 @@ const UserHome = () => {
         }
         @media (max-width: 768px) {
           .shield-standing-mascot-wrapper {
-            width: 135px;
-            height: 155px;
-            right: -10px;
-            bottom: -15px;
+            width: 160px;
+            height: 185px;
+            right: -15px;
+            bottom: -20px;
           }
         }
         @media (max-width: 480px) {
           .shield-standing-mascot-wrapper {
             display: none !important;
           }
+        }
+
+        /* Badge Roadmap Styles */
+        @keyframes badgePulse {
+          0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5); transform: scale(1); }
+          70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); transform: scale(1.03); }
+          100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); transform: scale(1); }
+        }
+        .badge-current-pulse {
+          animation: badgePulse 2s infinite ease-in-out;
+        }
+        .roadmap-badge-node {
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .roadmap-badge-node:hover {
+          transform: translateY(-2px) scale(1.05);
+        }
+        .emp-roadmap-scroll-container::-webkit-scrollbar {
+          width: 5px;
+        }
+        .emp-roadmap-scroll-container::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 10px;
+        }
+        .emp-roadmap-scroll-container::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 10px;
+        }
+        .emp-roadmap-scroll-container::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
         }
       ` }} />
 
@@ -309,180 +401,76 @@ const UserHome = () => {
         </div>
       </motion.div>
 
-      {/* ── Stats Grid ── */}
+      {/* ── Stats & Shield Standing Row ── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '20px',
+        gridTemplateColumns: '2fr 1fr',
+        gap: '24px',
         marginBottom: '28px'
-      }}>
-        <StatCard
-          icon={ShieldCheck}
-          label="Security Score"
-          value={securityScore}
-          suffix="/100"
-          sub="Overall safety rating"
-          cardBg="linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%)"
-          cardBorder="#bbf7d0"
-          textColor="#14532d"
-          iconBg="linear-gradient(135deg, #10b981, #059669)"
-          iconColor="#ffffff"
-          delay={0.05}
-        />
-        <StatCard
-          icon={Zap}
-          label="Total XP"
-          value={xp}
-          suffix=" XP"
-          sub="Accumulated rewards"
-          cardBg="linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)"
-          cardBorder="#fde68a"
-          textColor="#78350f"
-          iconBg="linear-gradient(135deg, #f59e0b, #d97706)"
-          iconColor="#ffffff"
-          delay={0.1}
-        />
-        <StatCard
-          icon={Trophy}
-          label="Leaderboard Rank"
-          value={`#${rank}`}
-          suffix=""
-          sub="Company standings"
-          cardBg="linear-gradient(135deg, #F5F3FF 0%, #E0E7FF 100%)"
-          cardBorder="#c7d2fe"
-          textColor="#4338ca"
-          iconBg="linear-gradient(135deg, #6366f1, #4f46e5)"
-          iconColor="#ffffff"
-          delay={0.15}
-        />
-        <StatCard
-          icon={BookOpen}
-          label="Training Done"
-          value={completionPct}
-          suffix="%"
-          sub={`${completedCount} of ${totalCount} modules`}
-          cardBg="linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%)"
-          cardBorder="#bae6fd"
-          textColor="#0369a1"
-          iconBg="linear-gradient(135deg, #0284c7, #0369a1)"
-          iconColor="#ffffff"
-          delay={0.2}
-        />
-      </div>
-
-      {/* ── Middle Section ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '24px', marginBottom: '28px' }} className="emp-home-mid-grid">
-
-        {/* LEFT: Next Course + Training Progress */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-          {/* Next Training */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.25 }}
-            style={{
-              background: '#fff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '20px',
-              padding: '28px',
-              flex: 1,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2563eb' }} />
-              <span style={{ fontSize: '11px', fontWeight: '800', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Next Recommended</span>
-            </div>
-
-            {nextCourse ? (
-              <>
-                <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0f172a', marginBottom: '8px', letterSpacing: '-0.02em' }}>
-                  {nextCourse.name}
-                </h3>
-                <p style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.6', marginBottom: '20px', fontWeight: '500' }}>
-                  {nextCourse.description || 'Strengthen your cybersecurity skills with this training module.'}
-                </p>
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#64748b', fontWeight: '600', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '5px 12px', borderRadius: '8px' }}>
-                    <Clock size={12} /> {nextCourse.duration || '15 min'}
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#d97706', fontWeight: '700', background: '#fffbeb', border: '1px solid #fde68a', padding: '5px 12px', borderRadius: '8px' }}>
-                    <Zap size={12} /> +100 XP
-                  </span>
-                </div>
-              </>
-            ) : (
-              <>
-                <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#10b981', marginBottom: '8px' }}>
-                  All Trainings Complete! 🎉
-                </h3>
-                <p style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.6', marginBottom: '20px' }}>
-                  Outstanding! You've cleared all awareness coursework. Keep reporting emails to earn bonus XP!
-                </p>
-              </>
-            )}
-
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => navigate('/user/training')}
-              style={{
-                width: '100%',
-                background: 'linear-gradient(135deg, #2563EB, #1d4ed8)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '12px',
-                fontSize: '14px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}
-            >
-              <Play size={14} fill="#fff" />
-              {nextCourse ? 'Start Training' : 'Browse All Modules'}
-              <ArrowRight size={14} />
-            </motion.button>
-          </motion.div>
-
-          {/* Training Curriculum Progress */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            style={{
-              background: '#fff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '20px',
-              padding: '24px',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>Curriculum Progress</h3>
-              <span style={{ fontSize: '22px', fontWeight: '900', color: '#2563eb' }}>{completionPct}%</span>
-            </div>
-            <div style={{ height: '10px', background: '#f1f5f9', borderRadius: '99px', overflow: 'hidden', marginBottom: '12px' }}>
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${completionPct}%` }}
-                transition={{ duration: 1.2, delay: 0.5, ease: 'easeOut' }}
-                style={{ height: '100%', background: 'linear-gradient(90deg, #2563EB, #06B6D4)', borderRadius: '99px', minWidth: '8px' }}
-              />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>
-              <span>{completedCount} completed</span>
-              <span>{totalCount - completedCount} remaining</span>
-            </div>
-          </motion.div>
+      }} className="emp-stats-shield-grid">
+        {/* Left: 2x2 grid of StatCards */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '16px'
+        }}>
+          <StatCard
+            imgSrc={securityScoreIcon}
+            label="Security Score"
+            value={securityScore}
+            suffix="/100"
+            sub="Overall safety rating"
+            cardBg="linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%)"
+            cardBorder="#bbf7d0"
+            textColor="#14532d"
+            iconBg="linear-gradient(135deg, #10b981, #059669)"
+            iconColor="#ffffff"
+            delay={0.05}
+          />
+          <StatCard
+            imgSrc={rewardXpIcon}
+            imgSize="135px"
+            label="Total XP"
+            value={xp}
+            suffix=" XP"
+            sub="Accumulated rewards"
+            cardBg="linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)"
+            cardBorder="#fde68a"
+            textColor="#78350f"
+            iconBg="linear-gradient(135deg, #f59e0b, #d97706)"
+            iconColor="#ffffff"
+            delay={0.1}
+          />
+          <StatCard
+            imgSrc={leaderboardIcon}
+            label="Leaderboard Rank"
+            value={`#${rank}`}
+            suffix=""
+            sub="Company standings"
+            cardBg="linear-gradient(135deg, #F5F3FF 0%, #E0E7FF 100%)"
+            cardBorder="#c7d2fe"
+            textColor="#4338ca"
+            iconBg="linear-gradient(135deg, #6366f1, #4f46e5)"
+            iconColor="#ffffff"
+            delay={0.15}
+          />
+          <StatCard
+            imgSrc={trainingModulesIcon}
+            label="Training Done"
+            value={completionPct}
+            suffix="%"
+            sub={`${completedCount} of ${totalCount} modules`}
+            cardBg="linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%)"
+            cardBorder="#bae6fd"
+            textColor="#0369a1"
+            iconBg="linear-gradient(135deg, #0284c7, #0369a1)"
+            iconColor="#ffffff"
+            delay={0.2}
+          />
         </div>
 
-        {/* RIGHT: Security Score Gauge + Quick Actions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-          {/* Security Score Card */}
+        {/* Right: Shield Standing Card */}
+        <div style={{ display: 'flex', width: '100%' }}>
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -492,16 +480,17 @@ const UserHome = () => {
               background: cardBg,
               border: `1px solid ${cardBorder}`,
               borderRadius: '24px',
-              padding: '28px',
+              padding: '24px 28px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'flex-start',
-              gap: '18px',
+              gap: '14px',
               position: 'relative',
               overflow: 'visible',
               boxShadow: `0 15px 35px -10px ${scoreColor}15, 0 4px 20px rgba(0,0,0,0.02)`,
               transition: 'all 0.3s ease',
               width: '100%',
+              maxWidth: '100%',
               alignSelf: 'stretch',
               zIndex: 5
             }}
@@ -535,25 +524,25 @@ const UserHome = () => {
             </div>
 
             {/* Circular gauge */}
-            <div style={{ position: 'relative', width: 130, height: 130, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, marginLeft: '12px' }}>
+            <div style={{ position: 'relative', width: 110, height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, marginLeft: '12px' }}>
               {/* Background glow blob */}
               <div style={{
                 position: 'absolute',
-                width: '90px', height: '90px', borderRadius: '50%',
+                width: '80px', height: '80px', borderRadius: '50%',
                 background: scoreColor, filter: 'blur(30px)', opacity: 0.08,
                 pointerEvents: 'none'
               }} />
 
-              <svg width="130" height="130" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="65" cy="65" r="50" fill="none" stroke="rgba(0, 0, 0, 0.03)" strokeWidth="8" />
+              <svg width="110" height="110" style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx="55" cy="55" r="42" fill="none" stroke="rgba(0, 0, 0, 0.03)" strokeWidth="7" />
                 <motion.circle
-                  cx="65" cy="65" r="50" fill="none"
+                  cx="55" cy="55" r="42" fill="none"
                   stroke={scoreColor}
-                  strokeWidth="8"
+                  strokeWidth="7"
                   strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * 50}`}
-                  initial={{ strokeDashoffset: 2 * Math.PI * 50 }}
-                  animate={{ strokeDashoffset: 2 * Math.PI * 50 * (1 - securityScore / 100) }}
+                  strokeDasharray={`${2 * Math.PI * 42}`}
+                  initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - securityScore / 100) }}
                   transition={{ duration: 1.2, delay: 0.4, ease: 'easeOut' }}
                   style={{ filter: `drop-shadow(0 0 4px ${scoreColor}80)` }}
                 />
@@ -563,8 +552,8 @@ const UserHome = () => {
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center'
               }}>
-                <span style={{
-                  fontSize: '32px',
+                <span className="gamified-metric" style={{
+                  fontSize: '28px',
                   fontWeight: '950',
                   color: textColor,
                   lineHeight: 1,
@@ -572,7 +561,7 @@ const UserHome = () => {
                 }}>
                   {securityScore}
                 </span>
-                <span style={{ fontSize: '9px', color: textColor, opacity: 0.7, fontWeight: '800', marginTop: '2px', letterSpacing: '0.05em' }}>/ 100 PTS</span>
+                <span className="gamified-metric" style={{ fontSize: '8px', color: textColor, opacity: 0.7, fontWeight: '800', marginTop: '2px', letterSpacing: '0.05em' }}>/ 100 PTS</span>
               </div>
             </div>
 
@@ -600,7 +589,7 @@ const UserHome = () => {
             </div>
 
             {/* Floating Character overlapping popout */}
-            <div className="shield-standing-mascot-wrapper">
+            <div className="shield-standing-mascot-wrapper" style={{ right: '-5px', bottom: '-5px', height: '220px' }}>
               <img
                 src={standingImg}
                 alt={`Mascot for status ${statusLabel}`}
@@ -613,139 +602,222 @@ const UserHome = () => {
               />
             </div>
           </motion.div>
-
-          {/* Quick Actions */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.35 }}
-            style={{
-              background: '#fff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '20px',
-              padding: '24px',
-              flex: 1,
-            }}
-          >
-            <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', marginBottom: '16px' }}>Quick Actions</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {[
-                { label: 'Report Suspicious Email', icon: Mail, path: '/user/report', color: '#2563eb', bg: '#eff6ff' },
-                { label: 'View Trainings', icon: BookOpen, path: '/user/training', color: '#0d9488', bg: '#f0fdfa' },
-                { label: 'Check Leaderboard', icon: Trophy, path: '/user/leaderboard', color: '#7c3aed', bg: '#f5f3ff' },
-              ].map((action, i) => {
-                const Icon = action.icon;
-                return (
-                  <motion.button
-                    key={action.path}
-                    whileHover={{ x: 4 }}
-                    onClick={() => navigate(action.path)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '12px',
-                      padding: '12px 14px', borderRadius: '12px',
-                      background: action.bg, border: `1px solid ${action.color}15`,
-                      cursor: 'pointer', width: '100%', textAlign: 'left',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <div style={{
-                      width: '34px', height: '34px', borderRadius: '10px',
-                      background: action.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                    }}>
-                      <Icon size={16} color="#fff" />
-                    </div>
-                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a', flex: 1 }}>{action.label}</span>
-                    <ChevronRight size={14} color={action.color} />
-                  </motion.button>
-                );
-              })}
-            </div>
-          </motion.div>
         </div>
       </div>
 
-      {/* ── Activity Feed ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
-        style={{
-          background: '#fff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '20px',
-          padding: '28px',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>Recent Activity</h3>
-          <button
-            onClick={() => navigate('/user/leaderboard')}
-            style={{ fontSize: '12px', color: '#2563eb', fontWeight: '700', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+      {/* ── Middle Section ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '28px' }} className="emp-home-mid-grid">
+
+        {/* Badge Roadmap — full width */}
+          {/* Badge Roadmap Card — Horizontal */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.28 }}
+            style={{
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%)',
+              border: '1px solid rgba(37,99,235,0.3)',
+              borderRadius: '20px',
+              padding: '20px 24px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              boxShadow: '0 8px 32px rgba(37,99,235,0.15)',
+            }}
           >
-            See all <ChevronRight size={12} />
-          </button>
-        </div>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }} className="gaming-title">
+                <Award size={18} color="#06b6d4" /> Badge Roadmap
+              </h3>
+              <span style={{ fontSize: '11px', fontWeight: '700', color: '#06b6d4', background: 'rgba(6,182,212,0.12)', border: '1px solid rgba(6,182,212,0.3)', padding: '3px 10px', borderRadius: '20px' }}>
+                Level {level} / 15
+              </span>
+            </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
-          {/* Certs */}
-          {recentCerts.map((c, i) => (
-            <div key={i} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', padding: '14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <CheckCircle size={18} color="#10b981" />
-              </div>
-              <div>
-                <p style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a', margin: 0 }}>
-                  Completed: {c.courseName || c.module_title}
-                </p>
-                <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px', fontWeight: '600' }}>+100 XP earned · Certificate issued</p>
-              </div>
-            </div>
-          ))}
+            {/* Horizontal Scrollable Path */}
+            <div
+              ref={scrollContainerRef}
+              style={{
+                overflowX: 'auto',
+                overflowY: 'visible',
+                paddingBottom: '8px',
+                paddingTop: '8px',
+              }}
+              className="emp-roadmap-scroll-container"
+            >
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0px',
+                width: 'max-content',
+                paddingLeft: '12px',
+                paddingRight: '12px',
+                position: 'relative',
+                minHeight: '130px',
+              }}>
+                {BADGES.map((b, idx) => {
+                  const isUnlocked = level >= b.level;
+                  const isCurrent = level === b.level;
+                  const Icon = b.icon;
+                  const isAbove = idx % 2 === 0;
 
-          {/* Reports */}
-          {recentReports.slice(0, 2).map((s, i) => (
-            <div key={i} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', padding: '14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <AlertTriangle size={18} color="#2563eb" />
-              </div>
-              <div>
-                <p style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a', margin: 0 }}>
-                  Reported: {s.subject}
-                </p>
-                <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px', fontWeight: '600' }}>+100 XP earned · Great vigilance!</p>
-              </div>
-            </div>
-          ))}
+                  // pick a gradient per node based on badge tier
+                  const nodeGradient = isCurrent
+                    ? 'linear-gradient(135deg, #2563eb, #06b6d4)'
+                    : isUnlocked
+                      ? idx < 4
+                        ? 'linear-gradient(135deg, #10b981, #059669)'
+                        : idx < 7
+                          ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+                          : idx < 10
+                            ? 'linear-gradient(135deg, #06b6d4, #0891b2)'
+                            : idx < 12
+                              ? 'linear-gradient(135deg, #7c3aed, #6d28d9)'
+                              : 'linear-gradient(135deg, #eab308, #ca8a04)'
+                      : 'linear-gradient(135deg, #334155, #1e293b)';
 
-          {/* Fallback */}
-          {recentCerts.length === 0 && recentReports.length === 0 && (
-            <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', padding: '14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Star size={18} color="#2563eb" />
-              </div>
-              <div>
-                <p style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a', margin: 0 }}>Welcome to Phintra! 🎉</p>
-                <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px', fontWeight: '600' }}>Complete your first training to earn XP rewards</p>
-              </div>
-            </div>
-          )}
+                  const connectorColor = isUnlocked
+                    ? idx < 4 ? '#10b981' : idx < 7 ? '#f59e0b' : idx < 10 ? '#06b6d4' : idx < 12 ? '#7c3aed' : '#eab308'
+                    : '#334155';
 
-          {/* Current streak activity */}
-          <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', padding: '14px', background: '#fffbeb', borderRadius: '12px', border: '1px solid #fde68a' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Flame size={18} color="#f59e0b" fill="#f59e0b" />
+                  return (
+                    <div key={b.level} style={{ display: 'flex', alignItems: 'center' }}>
+                      {/* Node + Label */}
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '6px',
+                        position: 'relative',
+                      }}>
+                        {/* Label above (even index) */}
+                        {isAbove && (
+                          <div style={{
+                            textAlign: 'center',
+                            marginBottom: '2px',
+                            maxWidth: '72px',
+                          }}>
+                            <div style={{
+                              fontSize: '9px',
+                              fontWeight: '800',
+                              color: isCurrent ? '#06b6d4' : isUnlocked ? '#e2e8f0' : '#475569',
+                              lineHeight: 1.2,
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {b.name.replace(' Badge', '')}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Spacer when label is below */}
+                        {!isAbove && <div style={{ height: '28px' }} />}
+
+                        {/* Circle Node */}
+                        <motion.div
+                          whileHover={isUnlocked ? { scale: 1.15, y: -3 } : {}}
+                          className={`roadmap-badge-node ${isCurrent ? 'badge-current-pulse' : ''}`}
+                          style={{
+                            width: '52px',
+                            height: '52px',
+                            borderRadius: '50%',
+                            background: nodeGradient,
+                            border: isCurrent
+                              ? '3px solid #06b6d4'
+                              : isUnlocked
+                                ? '2px solid rgba(255,255,255,0.2)'
+                                : '2px solid #334155',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            opacity: isUnlocked ? 1 : 0.4,
+                            boxShadow: isCurrent
+                              ? '0 0 24px rgba(6,182,212,0.7), 0 0 8px rgba(37,99,235,0.5), 0 4px 0 rgba(0,0,0,0.4)'
+                              : isUnlocked
+                                ? '0 4px 12px rgba(0,0,0,0.3), 0 2px 0 rgba(0,0,0,0.4)'
+                                : '0 2px 6px rgba(0,0,0,0.2)',
+                            cursor: isUnlocked ? 'pointer' : 'default',
+                            position: 'relative',
+                          }}
+                        >
+                          <span style={{
+                            fontSize: '11px',
+                            fontWeight: '900',
+                            color: isUnlocked ? '#ffffff' : '#64748b',
+                            lineHeight: 1,
+                            fontFamily: "'Oxanium', sans-serif",
+                          }}>
+                            {b.level}
+                          </span>
+                          {isCurrent && (
+                            <span style={{ fontSize: '7px', color: '#bfdbfe', fontWeight: '700', marginTop: '1px' }}>YOU</span>
+                          )}
+                        </motion.div>
+
+                        {/* Label below (odd index) */}
+                        {!isAbove && (
+                          <div style={{
+                            textAlign: 'center',
+                            marginTop: '2px',
+                            maxWidth: '72px',
+                          }}>
+                            <div style={{
+                              fontSize: '9px',
+                              fontWeight: '800',
+                              color: isCurrent ? '#06b6d4' : isUnlocked ? '#e2e8f0' : '#475569',
+                              lineHeight: 1.2,
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {b.name.replace(' Badge', '')}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Spacer when label is above */}
+                        {isAbove && <div style={{ height: '28px' }} />}
+                      </div>
+
+                      {/* Connector between nodes */}
+                      {idx < BADGES.length - 1 && (
+                        <div style={{
+                          width: '32px',
+                          height: '4px',
+                          flexShrink: 0,
+                          borderRadius: '99px',
+                          background: connectorColor,
+                          opacity: isUnlocked ? 0.9 : 0.2,
+                          boxShadow: isUnlocked ? `0 0 6px ${connectorColor}60` : 'none',
+                          position: 'relative',
+                          top: '0px',
+                        }} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a', margin: 0 }}>
-                {streak > 0 ? `${streak}-Day Streak Active! 🔥` : 'Start your streak today!'}
-              </p>
-              <p style={{ fontSize: '11px', color: '#92400e', marginTop: '3px', fontWeight: '600' }}>
-                {streak > 0 ? 'Keep it going — log in daily to maintain your streak' : 'Complete a training or report an email to begin'}
-              </p>
+
+            {/* Legend */}
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              {[
+                { color: '#10b981', label: 'Starter' },
+                { color: '#f59e0b', label: 'Bronze–Gold' },
+                { color: '#06b6d4', label: 'Cyber' },
+                { color: '#7c3aed', label: 'Elite' },
+                { color: '#eab308', label: 'Champion' },
+              ].map(({ color, label }) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}80` }} />
+                  <span style={{ fontSize: '10px', fontWeight: '600', color: '#94a3b8' }}>{label}</span>
+                </div>
+              ))}
             </div>
-          </div>
-        </div>
-      </motion.div>
+          </motion.div>
+
+
+      </div>
 
       {/* responsive grid tweak */}
       <style>{`

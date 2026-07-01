@@ -1,9 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
+import { useMsal } from '@azure/msal-react';
+import { loginRequest } from '../services/msal';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+  const { instance, accounts, inProgress } = useMsal();
+
   const [adminAuth, setAdminAuth] = useState(() => {
     return localStorage.getItem('adminAuth') === 'true';
   });
@@ -33,6 +37,56 @@ export const AuthProvider = ({ children }) => {
       rewards_balance: 1010
     };
   });
+
+  useEffect(() => {
+    const checkActiveAccountAndLogin = async () => {
+      const activeAccount = instance.getActiveAccount() || accounts[0];
+      if (activeAccount && !adminAuth && !employeeAuth) {
+        try {
+          const portalType = localStorage.getItem('sso_portal_type') || 'employee';
+          const response = await instance.acquireTokenSilent({
+            ...loginRequest,
+            account: activeAccount
+          });
+          const msalToken = response.accessToken;
+          localStorage.removeItem('sso_portal_type');
+          
+          const res = await microsoftLogin(msalToken, portalType);
+          if (res.success) {
+            if (portalType === 'admin') {
+              if (res.role === 'Security Administrator') window.location.href = '/admin/dashboard';
+              else if (res.role === 'Security Manager') window.location.href = '/admin/manager-dashboard';
+              else window.location.href = '/user/dashboard';
+            } else {
+              window.location.href = '/user/dashboard';
+            }
+          } else {
+            // Backend validation failed (e.g., email not registered)
+            instance.setActiveAccount(null);
+            if (portalType === 'admin') {
+              window.location.href = `/admin/login?error=${encodeURIComponent(res.message)}`;
+            } else {
+              window.location.href = `/user/login?error=${encodeURIComponent(res.message)}`;
+            }
+          }
+        } catch (err) {
+          console.error("Silent token acquisition failed:", err);
+          instance.setActiveAccount(null);
+          const portalType = localStorage.getItem('sso_portal_type') || 'employee';
+          localStorage.removeItem('sso_portal_type');
+          const errMsg = err.response?.data?.detail || err.message || 'Microsoft login failed.';
+          if (portalType === 'admin') {
+            window.location.href = `/admin/login?error=${encodeURIComponent(errMsg)}`;
+          } else {
+            window.location.href = `/user/login?error=${encodeURIComponent(errMsg)}`;
+          }
+        }
+      }
+    };
+    if (inProgress === 'none') {
+      checkActiveAccountAndLogin();
+    }
+  }, [accounts, instance, inProgress, adminAuth, employeeAuth]);
 
   // Map backend roles (Admin, Manager, Employee) to frontend UI expected roles
   const mapBackendRoleToFrontend = (role) => {
@@ -94,24 +148,43 @@ export const AuthProvider = ({ children }) => {
       if (queryToken) {
         try {
           const response = await api.get(`/auth/verify-dashboard-token?token=${queryToken}`);
-          const { access_token, employee } = response.data;
+          const { access_token, employee, user } = response.data;
           
-          localStorage.setItem('employeeToken', access_token);
-          localStorage.setItem('employeeAuth', 'true');
-          localStorage.setItem('employeeRole', 'Employee');
-          
-          setEmployeeAuth(true);
-          setEmployeeRole('Employee');
-          setEmployeeUser({
-            employee_id: employee.employee_id || employee.id,
-            name: employee.name,
-            email: employee.email,
-            role: 'Employee',
-            department: employee.department,
-            streakDays: 4,
-            securityScore: employee.personal_score || 80,
-            rewards_balance: employee.rewards_balance || 1010
-          });
+          if (employee) {
+            localStorage.setItem('employeeToken', access_token);
+            localStorage.setItem('employeeAuth', 'true');
+            localStorage.setItem('employeeRole', 'Employee');
+            
+            setEmployeeAuth(true);
+            setEmployeeRole('Employee');
+            setEmployeeUser({
+              employee_id: employee.employee_id || employee.id,
+              name: employee.name,
+              email: employee.email,
+              role: 'Employee',
+              department: employee.department,
+              streakDays: 4,
+              securityScore: employee.personal_score || 80,
+              rewards_balance: employee.rewards_balance || 1010
+            });
+          } else if (user) {
+            const mappedRole = mapBackendRoleToFrontend(user.role);
+            localStorage.setItem('adminToken', access_token);
+            localStorage.setItem('adminAuth', 'true');
+            localStorage.setItem('adminRole', mappedRole);
+            
+            setAdminAuth(true);
+            setAdminRole(mappedRole);
+            setAdminUser({
+              employee_id: user.employee_id || user.id,
+              name: user.name,
+              email: user.email,
+              role: mappedRole,
+              department: user.department || 'Management',
+              streakDays: 4,
+              securityScore: user.personal_score || 95
+            });
+          }
           
           // Clean URL token parameter
           urlParams.delete('token');
@@ -340,6 +413,49 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const microsoftLogin = async (microsoftToken, portalType) => {
+    try {
+      const response = await api.post('/auth/microsoft/login', { token: microsoftToken });
+      const { access_token, role, user, employee } = response.data;
+      
+      if (portalType === 'admin') {
+        const mappedRole = mapBackendRoleToFrontend(role);
+        localStorage.setItem('adminToken', access_token);
+        setAdminAuth(true);
+        setAdminRole(mappedRole);
+        setAdminUser({
+          employee_id: user ? (user.employee_id || user.id) : null,
+          name: user ? user.name : 'Admin',
+          email: user ? user.email : '',
+          role: mappedRole,
+          department: (user && user.department) || 'Management',
+          streakDays: 4,
+          securityScore: (user && user.personal_score) || 95
+        });
+        return { success: true, role: mappedRole };
+      } else {
+        localStorage.setItem('employeeToken', access_token);
+        setEmployeeAuth(true);
+        setEmployeeRole('Employee');
+        setEmployeeUser({
+          employee_id: employee ? (employee.employee_id || employee.id) : null,
+          name: employee ? employee.name : 'Employee',
+          email: employee ? employee.email : '',
+          role: 'Employee',
+          department: (employee && employee.department) || 'Unknown',
+          streakDays: 4,
+          securityScore: (employee && employee.personal_score) || 80,
+          rewards_balance: (employee && employee.rewards_balance) || 1010
+        });
+        return { success: true, role: 'Employee' };
+      }
+    } catch (error) {
+      console.error("Microsoft login verification failed:", error);
+      const errMsg = error.response?.data?.detail || 'Your account is not registered in Phintra.';
+      return { success: false, message: errMsg };
+    }
+  };
+
   const value = {
     get isAuthenticated() {
       const isAdmin = window.location.pathname.startsWith('/admin') || 
@@ -364,6 +480,7 @@ export const AuthProvider = ({ children }) => {
     },
     login,
     employeeLogin,
+    microsoftLogin,
     register,
     selectRole,
     logout,
